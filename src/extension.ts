@@ -1,4 +1,4 @@
-export const extensionId = "intersystems-community.vscode-objectscript";
+export const extensionId = "consistem.vscode-objectscript";
 export const lsExtensionId = "intersystems.language-server";
 export const smExtensionId = "intersystems-community.servermanager";
 
@@ -161,7 +161,7 @@ import { isfsConfig } from "./utils/FileProviderUtil";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
-const aiKey = packageJson.aiKey;
+const aiKey: string | undefined = packageJson.aiKey;
 const PANEL_LABEL = "ObjectScript";
 const lowCodeEditorViewType = packageJson.contributes.customEditors[0].viewType;
 
@@ -655,7 +655,7 @@ function proposedApiPrompt(active: boolean, added?: readonly vscode.WorkspaceFol
         switch (action) {
           case "Yes":
             vscode.env.openExternal(
-              vscode.Uri.parse("https://github.com/intersystems-community/vscode-objectscript#enable-proposed-apis")
+              vscode.Uri.parse("https://github.com/consistem/vscode-objectscript#enable-proposed-apis")
             );
             break;
           case "Never":
@@ -859,7 +859,7 @@ let incLangConf: vscode.Disposable;
 let intLangConf: vscode.Disposable;
 
 export async function activate(context: vscode.ExtensionContext): Promise<any> {
-  if (!packageJson.version.includes("-") || packageJson.version.includes("-beta.")) {
+  if (aiKey && (!packageJson.version.includes("-") || packageJson.version.includes("-beta."))) {
     // Don't send telemetry for development builds
     try {
       reporter = new TelemetryReporter(aiKey);
@@ -867,6 +867,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       // Run without telemetry
       reporter = undefined;
     }
+  } else {
+    reporter = undefined;
   }
 
   // workaround for Theia, issue https://github.com/eclipse-theia/theia/issues/8435

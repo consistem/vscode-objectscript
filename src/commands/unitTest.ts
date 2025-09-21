@@ -917,10 +917,7 @@ async function runHandler(
 /** The `configureHandler` function for the `TestRunProfile`s. */
 function configureHandler(): void {
   // Open the settings UI and focus on the "objectscript.unitTest" settings
-  vscode.commands.executeCommand(
-    "workbench.action.openSettings",
-    "@ext:intersystems-community.vscode-objectscript unitTest"
-  );
+  vscode.commands.executeCommand("workbench.action.openSettings", "@ext:consistem.vscode-objectscript unitTest");
 }
 
 /** Set up the `TestController` and all of its dependencies. */
