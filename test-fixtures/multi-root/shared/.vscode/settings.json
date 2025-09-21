@@ -1,0 +1,9 @@
+{
+  "objectscript.conn": {
+    "active": false,
+    "ns": "SAMPLES"
+  },
+  "objectscript.export": {
+    "folder": "src"
+  }
+}

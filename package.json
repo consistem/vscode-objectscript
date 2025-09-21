@@ -1406,6 +1406,14 @@
               },
               "additionalProperties": false
             },
+            "searchOtherWorkspaceFolders": {
+              "markdownDescription": "Additional workspace folders to search for client-side sources when resolving ObjectScript documents. Specify `\"*\"` to search all non-isfs workspace folders in the current multi-root workspace before falling back to the server.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": []
+            },
             "atelier": {
               "description": "Export source code as Atelier did it, with packages as subfolders. This setting only affects classes, routines, include files and DFI files.",
               "type": "boolean"
