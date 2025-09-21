@@ -71,6 +71,23 @@ intersystems-community.vscode-objectscript version X.Y.Z-beta.1 activating with 
 
 After a subsequent update of the extension from Marketplace you will only have to download and install the new `vscode-objectscript-X.Y.Z-beta.1` VSIX. None of the other steps above are needed again.
 
+## Cross-workspace Go to Definition
+
+When working in a multi-root workspace, the extension normally searches the current workspace folder (and any sibling folders connected to the same namespace) for local copies of ObjectScript code before requesting the server version. If you keep shared source code in other workspace folders with different connection settings, set the `objectscript.export.searchOtherWorkspaceFolders` array in the consuming folder's settings so those folders are considered first. Use workspace-folder names, or specify `"*"` to search every non-`isfs` folder.
+
+```json
+{
+  "objectscript.export": {
+    "folder": "src",
+    "searchOtherWorkspaceFolders": [
+      "shared"
+    ]
+  }
+}
+```
+
+With this setting enabled, features such as Go to Definition resolve to the first matching local file across the configured workspace folders before falling back to the server copy.
+
 ## Notes
 
 - Connection-related output appears in the 'Output' view while switched to the 'ObjectScript' channel using the drop-down menu on the view titlebar.

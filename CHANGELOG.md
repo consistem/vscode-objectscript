@@ -1,5 +1,9 @@
 # Change Log
 
+## [Unreleased]
+- Enhancements
+  - Allow configuring cross-workspace Go to Definition lookups via `objectscript.export.searchOtherWorkspaceFolders` so local sources in sibling workspace folders are resolved before falling back to the server.
+
 ## [3.0.6] 09-Sep-2025
 - Enhancements
   - Add `objectscript.unitTest.enabled` setting (#1627)
