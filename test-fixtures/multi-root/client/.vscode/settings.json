@@ -1,0 +1,12 @@
+{
+  "objectscript.conn": {
+    "active": true,
+    "ns": "USER"
+  },
+  "objectscript.export": {
+    "folder": "src",
+    "searchOtherWorkspaceFolders": [
+      "shared"
+    ]
+  }
+}
