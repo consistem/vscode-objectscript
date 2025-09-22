@@ -27,6 +27,10 @@ export const incLangId = "objectscript-macros";
 export const cspLangId = "objectscript-csp";
 export const outputLangId = "vscode-objectscript-output";
 
+const dotPrefixRegex = /^(\s*(?:\.\s*)+)/;
+const dotIndentLanguages = new Set<string>([macLangId, intLangId]);
+const dotIndentSkipDocuments = new Set<string>();
+
 import * as url from "url";
 import path = require("path");
 import {
@@ -1037,6 +1041,72 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       );
     }
   }
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument(async (event) => {
+      if (!dotIndentLanguages.has(event.document.languageId)) {
+        return;
+      }
+
+      const docUriString = event.document.uri.toString();
+      if (dotIndentSkipDocuments.has(docUriString)) {
+        return;
+      }
+
+      const editor = vscode.window.visibleTextEditors.find((e) => e.document === event.document);
+      if (!editor) {
+        return;
+      }
+
+      for (const change of event.contentChanges) {
+        if (!change.text.includes("\n")) {
+          continue;
+        }
+
+        const newLineNumber = change.range.start.line + 1;
+        if (newLineNumber >= event.document.lineCount || newLineNumber <= 0) {
+          continue;
+        }
+
+        const previousLine = event.document.lineAt(newLineNumber - 1).text;
+        const prefixMatch = previousLine.match(dotPrefixRegex);
+        if (!prefixMatch) {
+          continue;
+        }
+
+        let insertText = prefixMatch[1];
+        if (!insertText.endsWith(" ")) {
+          insertText += " ";
+        }
+
+        const remainder = previousLine.slice(prefixMatch[1].length);
+        if (remainder.startsWith(";")) {
+          insertText += ";";
+        }
+
+        const newLine = event.document.lineAt(newLineNumber);
+        if (newLine.text.startsWith(insertText)) {
+          continue;
+        }
+
+        const indentMatch = newLine.text.match(/^\s*/);
+        const indentLength = indentMatch ? indentMatch[0].length : 0;
+        const replaceRange = new vscode.Range(newLine.range.start, new vscode.Position(newLineNumber, indentLength));
+
+        dotIndentSkipDocuments.add(docUriString);
+        try {
+          await editor.edit(
+            (editBuilder) => {
+              editBuilder.replace(replaceRange, insertText);
+            },
+            { undoStopBefore: false, undoStopAfter: false }
+          );
+        } finally {
+          dotIndentSkipDocuments.delete(docUriString);
+        }
+      }
+    })
+  );
 
   openedClasses = workspaceState.get("openedClasses") ?? [];
 
