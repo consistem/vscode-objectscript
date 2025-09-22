@@ -21,6 +21,17 @@ async function waitForIndexedDocument(documentName: string, workspaceFolderName:
   assert.fail(`Timed out waiting for '${documentName}' to be indexed in workspace folder '${workspaceFolderName}'.`);
 }
 
+async function waitForCondition(predicate: () => boolean, timeoutMs = 1000, message?: string): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (predicate()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.fail(message ?? "Timed out waiting for condition");
+}
+
 function getDefinitionTargets(definitions: (vscode.Location | vscode.DefinitionLink)[]): vscode.Uri[] {
   return definitions
     .map((definition) => ("targetUri" in definition ? definition.targetUri : definition.uri))
@@ -42,6 +53,42 @@ suite("Extension Test Suite", () => {
 
   test("Sample test", () => {
     assert.ok("All good");
+  });
+
+  test("Dot-prefixed statements continue on newline", async () => {
+    const document = await vscode.workspace.openTextDocument({
+      language: "objectscript",
+      content: "    . Do ##class(Test).Run()",
+    });
+    const editor = await vscode.window.showTextDocument(document);
+    try {
+      await editor.edit((editBuilder) => {
+        editBuilder.insert(document.lineAt(0).range.end, "\n");
+      });
+      await waitForCondition(() => document.lineCount > 1);
+      await waitForCondition(() => document.lineAt(1).text.length > 0);
+      assert.strictEqual(document.lineAt(1).text, "    . ");
+    } finally {
+      await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
+    }
+  });
+
+  test("Dot-prefixed semicolon comments continue on newline", async () => {
+    const document = await vscode.workspace.openTextDocument({
+      language: "objectscript",
+      content: "  . ; Comment",
+    });
+    const editor = await vscode.window.showTextDocument(document);
+    try {
+      await editor.edit((editBuilder) => {
+        editBuilder.insert(document.lineAt(0).range.end, "\n");
+      });
+      await waitForCondition(() => document.lineCount > 1);
+      await waitForCondition(() => document.lineAt(1).text.length > 0);
+      assert.strictEqual(document.lineAt(1).text, "  . ;");
+    } finally {
+      await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
+    }
   });
 
   test("Go to Definition resolves to sibling workspace folder", async function () {
