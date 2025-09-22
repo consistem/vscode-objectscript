@@ -1,5 +1,12 @@
 # Change Log
 
+## [Unreleased – 3.0.7]
+
+- Enhancements
+  - Enable cross-workspace Go to Definition via `objectscript.export.searchOtherWorkspaceFolders` (prefer local files across sibling workspace folders). (#4)
+  - Add ObjectScript enter rules for semicolon (`;`) continuation on line break. (#5)
+  - Auto-indent dot syntax on Enter for `objectscript`/`objectscript-int` (replicates leading dots). (#6)
+
 ## [3.0.6] 09-Sep-2025
 
 - Enhancements
