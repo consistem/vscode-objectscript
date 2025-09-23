@@ -837,6 +837,11 @@
       },
       {
         "category": "ObjectScript",
+        "command": "vscode-objectscript.resolveContextExpression",
+        "title": "Resolve Context Expression"
+      },
+      {
+        "category": "ObjectScript",
         "command": "vscode-objectscript.compile",
         "title": "Import and Compile Current File"
       },
@@ -1208,6 +1213,12 @@
         "key": "Ctrl+Shift+F7",
         "mac": "Cmd+Shift+F7",
         "when": "editorLangId =~ /^objectscript/"
+      },
+      {
+        "command": "vscode-objectscript.resolveContextExpression",
+        "key": "Ctrl+Alt+Space",
+        "mac": "Cmd+Alt+Space",
+        "when": "editorTextFocus && editorLangId =~ /^objectscript/"
       },
       {
         "command": "vscode-objectscript.viewOthers",
