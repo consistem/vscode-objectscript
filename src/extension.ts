@@ -163,6 +163,7 @@ import { WorkspaceNode, NodeBase } from "./explorer/nodes";
 import { showPlanWebview } from "./commands/showPlanPanel";
 import { isfsConfig } from "./utils/FileProviderUtil";
 import { showAllClassMembers } from "./commands/showAllClassMembers";
+import { resolveContextExpression } from "./commands/contextHelp";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -1260,6 +1261,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.copyToClipboard", (command: string) => {
       sendCommandTelemetryEvent("copyToClipboard");
       vscode.env.clipboard.writeText(command);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.resolveContextExpression", () => {
+      sendCommandTelemetryEvent("resolveContextExpression");
+      void resolveContextExpression();
     }),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
       sendCommandTelemetryEvent("debug");
