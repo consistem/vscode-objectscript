@@ -73,9 +73,11 @@ export async function resolveContextExpression(): Promise<void> {
       const eol = document.eol === vscode.EndOfLine.CRLF ? "\r\n" : "\n";
       const textExpression = data.textExpression.replace(/\r?\n/g, eol);
       const formattedTextExpression = textExpression.replace(/^/, "\t");
-      const lineRange = document.lineAt(selection.active.line).range;
+      const rangeToReplace = selection.isEmpty
+        ? document.lineAt(selection.active.line).range
+        : new vscode.Range(selection.start, selection.end);
       await editor.edit((editBuilder) => {
-        editBuilder.replace(lineRange, formattedTextExpression);
+        editBuilder.replace(rangeToReplace, formattedTextExpression);
       });
     } else {
       const errorMessage = data.message || "Failed to resolve context expression.";
