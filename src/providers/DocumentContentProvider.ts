@@ -165,73 +165,30 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
         });
       }
     } else {
-      const conn = config("conn", workspaceFolder) ?? {};
-      const exportConfig =
-        workspaceFolder && workspaceFolder !== ""
-          ? (config("export", workspaceFolder) as { searchOtherWorkspaceFolders?: string[] })
-          : undefined;
-      const searchOtherWorkspaceFolders = Array.isArray(exportConfig?.searchOtherWorkspaceFolders)
-        ? exportConfig.searchOtherWorkspaceFolders
-            .map((value) => (typeof value === "string" ? value.trim() : ""))
-            .filter((value) => value.length > 0)
-        : [];
-      const includeAllFolders = searchOtherWorkspaceFolders.includes("*");
-      const explicitAdditionalFolders = new Set(
-        searchOtherWorkspaceFolders.filter((value) => value !== "*").map((value) => value.toLowerCase())
-      );
+      const conn = config("conn", workspaceFolder);
       if (!forceServerCopy) {
-        const tryLocalUri = (folderName: string, allowNamespaceMismatch: boolean): vscode.Uri => {
-          const localFile = this.findLocalUri(name, folderName);
-          if (!localFile) return;
-          if (!allowNamespaceMismatch && namespace) {
-            const folderConn = config("conn", folderName) ?? {};
-            if (folderConn.ns && namespace !== folderConn.ns) {
-              return;
-            }
-          }
-          return localFile;
-        };
-
         // Look for the document in the local file system
-        const primaryLocal = tryLocalUri(workspaceFolder, false);
-        if (primaryLocal) {
-          return primaryLocal;
-        }
-
-        // Check any other eligible local folders in this workspace if it's a multi-root workspace
-        const wFolders = vscode.workspace.workspaceFolders;
-        if (wFolders && wFolders.length > 1 && workspaceFolder) {
-          const candidates: { folder: vscode.WorkspaceFolder; allowNamespaceMismatch: boolean }[] = [];
-          const seen = new Set<string>();
-          const addCandidate = (folder: vscode.WorkspaceFolder, allowNamespaceMismatch: boolean): void => {
-            if (!notIsfs(folder.uri)) return;
-            if (folder.name === workspaceFolder) return;
-            if (seen.has(folder.name)) return;
-            candidates.push({ folder, allowNamespaceMismatch });
-            seen.add(folder.name);
-          };
-
-          for (const wFolder of wFolders) {
-            if (wFolder.name === workspaceFolder) continue;
-            const wFolderConn = config("conn", wFolder.name) ?? {};
-            if (compareConns(conn, wFolderConn) && (!namespace || namespace === wFolderConn.ns)) {
-              addCandidate(wFolder, false);
-            }
-          }
-
-          if (includeAllFolders || explicitAdditionalFolders.size > 0) {
+        const localFile = this.findLocalUri(name, workspaceFolder);
+        if (localFile && (!namespace || namespace === conn.ns)) {
+          // Exists as a local file and we aren't viewing a different namespace on the same server,
+          // so return a uri that will open the local file.
+          return localFile;
+        } else {
+          // The local file doesn't exist in this folder, so check any other
+          // local folders in this workspace if it's a multi-root workspace
+          const wFolders = vscode.workspace.workspaceFolders;
+          if (wFolders && wFolders.length > 1) {
+            // This is a multi-root workspace
             for (const wFolder of wFolders) {
-              if (wFolder.name === workspaceFolder) continue;
-              const shouldInclude = includeAllFolders || explicitAdditionalFolders.has(wFolder.name.toLowerCase());
-              if (!shouldInclude) continue;
-              addCandidate(wFolder, true);
-            }
-          }
-
-          for (const candidate of candidates) {
-            const candidateLocal = tryLocalUri(candidate.folder.name, candidate.allowNamespaceMismatch);
-            if (candidateLocal) {
-              return candidateLocal;
+              if (notIsfs(wFolder.uri) && wFolder.name != workspaceFolder) {
+                // This isn't the folder that we checked originally
+                const wFolderConn = config("conn", wFolder.name);
+                if (compareConns(conn, wFolderConn) && (!namespace || namespace === wFolderConn.ns)) {
+                  // This folder is connected to the same server:ns combination as the original folder
+                  const wFolderFile = this.findLocalUri(name, wFolder.name);
+                  if (wFolderFile) return wFolderFile;
+                }
+              }
             }
           }
         }
