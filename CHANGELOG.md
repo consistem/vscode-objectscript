@@ -7,6 +7,7 @@
   - Add ObjectScript enter rules for semicolon (`;`) continuation on line break. (#5)
   - Auto-indent dot syntax on Enter for `objectscript`/`objectscript-int` (replicates leading dots). (#6)
   - Added `resolveContextExpression` command: posts current line/routine to API, inserts returned code on success, shows error otherwise. (#7)
+  - Refactor API: extracted request util and updated endpoints (#8)
 
 ## [3.0.6] 09-Sep-2025
 
