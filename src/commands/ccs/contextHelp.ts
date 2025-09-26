@@ -1,10 +1,9 @@
-import axios from "axios";
-import * as https from "https";
 import * as path from "path";
 import * as vscode from "vscode";
 
-import { AtelierAPI } from "../api";
-import { handleError } from "../utils";
+import { AtelierAPI } from "../../api";
+import { SourceControlApi } from "../../api/ccs/sourceControl";
+import { handleError } from "../../utils";
 
 interface ResolveContextExpressionResponse {
   status?: string;
@@ -30,43 +29,20 @@ export async function resolveContextExpression(): Promise<void> {
 
   const routine = path.basename(document.fileName);
   const api = new AtelierAPI(document.uri);
-  const { host, port, username, password, https: useHttps, pathPrefix } = api.config;
 
-  if (!host || !port) {
-    void vscode.window.showErrorMessage("No active InterSystems server connection for this file.");
+  let sourceControlApi: SourceControlApi;
+  try {
+    sourceControlApi = SourceControlApi.fromAtelierApi(api);
+  } catch (error) {
+    void vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
     return;
   }
 
-  const normalizedPrefix = pathPrefix ? (pathPrefix.startsWith("/") ? pathPrefix : `/${pathPrefix}`) : "";
-
-  const baseUrl = `${useHttps ? "https" : "http"}://${host}:${port}${encodeURI(normalizedPrefix)}`;
-  const url = `${baseUrl}/api/sourcecontrol/vscode/resolveContextExpression`;
-
-  const httpsAgent = new https.Agent({
-    rejectUnauthorized: vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
-  });
-
   try {
-    const response = await axios.post<ResolveContextExpressionResponse>(
-      url,
-      {
-        routine,
-        contextExpression,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        auth:
-          typeof username === "string" && typeof password === "string"
-            ? {
-                username,
-                password,
-              }
-            : undefined,
-        httpsAgent,
-      }
-    );
+    const response = await sourceControlApi.post<ResolveContextExpressionResponse>("/resolveContextExpression", {
+      routine,
+      contextExpression,
+    });
 
     const data = response.data ?? {};
     if (typeof data.status === "string" && data.status.toLowerCase() === "success" && data.textExpression) {
