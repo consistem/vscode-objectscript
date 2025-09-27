@@ -1,21 +1,22 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
+import { DefinitionResolverApi } from "../api/ccs/definitionResolver";
 import { currentFile, CurrentTextFile, currentWorkspaceFolder } from "../utils";
 import { ClassDefinition } from "../utils/classDefinition";
 import { DocumentContentProvider } from "./DocumentContentProvider";
 
 export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider {
-  public provideDefinition(
+  public async provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,
     token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.Location | vscode.Location[] | vscode.DefinitionLink[]> {
+  ): Promise<vscode.Location | vscode.Location[] | vscode.DefinitionLink[]> {
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
     const workspaceFolderName = workspaceFolder ? workspaceFolder.name : currentWorkspaceFolder();
     const lineText = document.lineAt(position.line).text;
     const file = currentFile();
 
-    const fromClassRef = this.classRef(workspaceFolderName, document, position);
+    const fromClassRef = await this.classRef(workspaceFolderName, document, position);
     if (fromClassRef) {
       return fromClassRef;
     }
@@ -25,14 +26,13 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       const selfEntity = document.getText(selfRef).substr(2);
       const range = new vscode.Range(position.line, selfRef.start.character + 2, position.line, selfRef.end.character);
       const classDefinition = new ClassDefinition(file.name);
-      return classDefinition.getMemberLocations(selfEntity).then((locations): vscode.DefinitionLink[] =>
-        locations.map(
-          (location): vscode.DefinitionLink => ({
-            originSelectionRange: range,
-            targetRange: location.range,
-            targetUri: location.uri,
-          })
-        )
+      const locations = await classDefinition.getMemberLocations(selfEntity);
+      return locations.map(
+        (location): vscode.DefinitionLink => ({
+          originSelectionRange: range,
+          targetRange: location.range,
+          targetUri: location.uri,
+        })
       );
     }
 
@@ -41,11 +41,15 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     const macroMatch = macroText.match(/^\${3}(\b\w+\b)$/);
     if (macroMatch) {
       const [, macro] = macroMatch;
-      return this.macro(workspaceFolderName, currentFile(), macro).then((data) =>
-        data && data.document.length
-          ? new vscode.Location(DocumentContentProvider.getUri(data.document), new vscode.Position(data.line, 0))
-          : null
-      );
+      const literalQuery = macroMatch[0];
+      const resolved = await this.resolveWithDefinitionApi(document, literalQuery);
+      if (resolved) {
+        return resolved;
+      }
+      const data = await this.macro(workspaceFolderName, currentFile(), macro);
+      return data && data.document.length
+        ? new vscode.Location(DocumentContentProvider.getUri(data.document), new vscode.Position(data.line, 0))
+        : null;
     }
     const asClass = /(\b(?:Of|As|Extends)\b %?\b[a-zA-Z][a-zA-Z0-9]+(?:\.[a-zA-Z][a-zA-Z0-9]+)*\b(?! of))/i;
     let parts = lineText.split(asClass);
@@ -55,15 +59,19 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         const [keyword, name] = part.split(" ");
         const start = pos + keyword.length + 1;
         if (this.isValid(position, start, name.length)) {
-          return [
-            this.makeClassDefinition(
-              workspaceFolderName,
-              position,
-              start,
-              name.length,
-              this.normalizeClassName(document, name)
-            ),
-          ];
+          const literalQuery = name;
+          const resolved = await this.resolveWithDefinitionApi(document, literalQuery);
+          if (resolved) {
+            return [this.locationToDefinitionLink(resolved, position, start, name.length)];
+          }
+          const fallbackDefinition = this.makeClassDefinition(
+            workspaceFolderName,
+            position,
+            start,
+            name.length,
+            this.normalizeClassName(document, name)
+          );
+          return [fallbackDefinition];
         }
       }
       pos += part.length;
@@ -88,15 +96,13 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     for (const part of parts) {
       if (part.match(onPropertyList)) {
         const listProperties = /\(([^)]+)\)/.exec(part)[1].split(/\s*,\s*/);
-        return listProperties
-          .map((name) => {
-            name = name.trim();
-            const start = pos + part.indexOf(name);
-            if (this.isValid(position, start, name.length)) {
-              return this.makePropertyDefinition(document, name);
-            }
-          })
-          .filter((el) => el != null);
+        for (let name of listProperties) {
+          name = name.trim();
+          const start = pos + part.indexOf(name);
+          if (this.isValid(position, start, name.length)) {
+            return [this.makePropertyDefinition(document, name)];
+          }
+        }
       }
       pos += part.length;
     }
@@ -106,21 +112,25 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     for (const part of parts) {
       if (part.match(asClassList)) {
         const listClasses = /\(([^)]+)\)/.exec(part)[1].split(/\s*,\s*/);
-        return listClasses
-          .map((name) => {
-            name = name.trim();
-            const start = pos + part.indexOf(name);
-            if (this.isValid(position, start, name.length)) {
-              return this.makeClassDefinition(
-                workspaceFolderName,
-                position,
-                start,
-                name.length,
-                this.normalizeClassName(document, name)
-              );
+        for (let name of listClasses) {
+          name = name.trim();
+          const start = pos + part.indexOf(name);
+          if (this.isValid(position, start, name.length)) {
+            const literalQuery = name;
+            const resolved = await this.resolveWithDefinitionApi(document, literalQuery);
+            if (resolved) {
+              return [this.locationToDefinitionLink(resolved, position, start, name.length)];
             }
-          })
-          .filter((el) => el != null);
+            const fallbackDefinition = this.makeClassDefinition(
+              workspaceFolderName,
+              position,
+              start,
+              name.length,
+              this.normalizeClassName(document, name)
+            );
+            return [fallbackDefinition];
+          }
+        }
       }
       pos += part.length;
     }
@@ -132,15 +142,19 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       const [, name] = includeMatch;
       const start = lineText.indexOf(name);
       if (this.isValid(position, start, name.length)) {
-        return [
-          this.makeRoutineDefinition(
-            workspaceFolderName,
-            position,
-            start,
-            name.length,
-            this.normalizeRoutineName(document, name, "inc")
-          ),
-        ];
+        const literalQuery = name;
+        const resolved = await this.resolveWithDefinitionApi(document, literalQuery);
+        if (resolved) {
+          return [this.locationToDefinitionLink(resolved, position, start, name.length)];
+        }
+        const fallbackDefinition = this.makeRoutineDefinition(
+          workspaceFolderName,
+          position,
+          start,
+          name.length,
+          this.normalizeRoutineName(document, name, "inc")
+        );
+        return [fallbackDefinition];
       }
     }
 
@@ -154,15 +168,19 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
           name = name.trim();
           const start = pos + part.indexOf(name);
           if (this.isValid(position, start, name.length)) {
-            return [
-              this.makeRoutineDefinition(
-                workspaceFolderName,
-                position,
-                start,
-                name.length,
-                this.normalizeRoutineName(document, name, "inc")
-              ),
-            ];
+            const literalQuery = name;
+            const resolved = await this.resolveWithDefinitionApi(document, literalQuery);
+            if (resolved) {
+              return [this.locationToDefinitionLink(resolved, position, start, name.length)];
+            }
+            const fallbackDefinition = this.makeRoutineDefinition(
+              workspaceFolderName,
+              position,
+              start,
+              name.length,
+              this.normalizeRoutineName(document, name, "inc")
+            );
+            return [fallbackDefinition];
           }
         }
       }
@@ -177,9 +195,21 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
         const [, routine] = part.match(/\^(%?\b\w+\b)/);
         const start = pos + part.indexOf(routine) - 1;
         const length = routine.length + 1;
-        return this.getFullRoutineName(routine).then((routineName) => [
-          this.makeRoutineDefinition(workspaceFolderName, position, start, length, routineName),
-        ]);
+        const literalQueryMatch = part.match(asLabelRoutineCall);
+        const literalQuery = literalQueryMatch ? literalQueryMatch[0] : `^${routine}`;
+        const resolved = await this.resolveWithDefinitionApi(document, literalQuery);
+        if (resolved) {
+          return [this.locationToDefinitionLink(resolved, position, start, length)];
+        }
+        const routineName = await this.getFullRoutineName(routine);
+        const fallbackDefinition = this.makeRoutineDefinition(
+          workspaceFolderName,
+          position,
+          start,
+          length,
+          routineName
+        );
+        return [fallbackDefinition];
       }
       pos += part.length;
     }
@@ -187,26 +217,31 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
     return [];
   }
 
-  public classRef(
+  public async classRef(
     workspaceFolder: string,
     document: vscode.TextDocument,
     position: vscode.Position
-  ): vscode.ProviderResult<vscode.Location | vscode.Location[] | vscode.DefinitionLink[]> {
+  ): Promise<vscode.Location | vscode.Location[] | vscode.DefinitionLink[]> {
     const classRef = /##class\(([^)]+)\)(?:\\$this)?\.(#?%?[a-zA-Z][a-zA-Z0-9]*)/i;
     const classRefRange = document.getWordRangeAtPosition(position, classRef);
     if (classRefRange) {
       const [, className, entity] = document.getText(classRefRange).match(classRef);
       const start = classRefRange.start.character + 8;
       if (this.isValid(position, start, className.length)) {
-        return [
-          this.makeClassDefinition(
-            workspaceFolder,
-            position,
-            start,
-            className.length,
-            this.normalizeClassName(document, className)
-          ),
-        ];
+        const literalMatch = document.getText(classRefRange).match(/##class\([^)]+\)/i);
+        const literalQuery = literalMatch ? literalMatch[0] : `##class(${className})`;
+        const resolved = await this.resolveWithDefinitionApi(document, literalQuery);
+        if (resolved) {
+          return [this.locationToDefinitionLink(resolved, position, start, className.length)];
+        }
+        const fallbackDefinition = this.makeClassDefinition(
+          workspaceFolder,
+          position,
+          start,
+          className.length,
+          this.normalizeClassName(document, className)
+        );
+        return [fallbackDefinition];
       } else {
         const classDefinition = new ClassDefinition(className);
         return classDefinition.getMemberLocations(entity);
@@ -324,6 +359,49 @@ export class ObjectScriptDefinitionProvider implements vscode.DefinitionProvider
       ),
       targetRange: new vscode.Range(firstLinePos, firstLinePos),
       targetUri: DocumentContentProvider.getUri(name, workspaceFolder),
+    };
+  }
+
+  private async resolveWithDefinitionApi(
+    document: vscode.TextDocument,
+    query: string
+  ): Promise<vscode.Location | undefined> {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
+      return undefined;
+    }
+
+    try {
+      const api = DefinitionResolverApi.fromAtelierApi(new AtelierAPI(document.uri));
+      const result = await api.resolve(trimmedQuery);
+      if (result && result.uri) {
+        const line = typeof result.line === "number" ? result.line : 1;
+        const column = typeof result.column === "number" ? result.column : 1;
+        const position = new vscode.Position(Math.max(line - 1, 0), Math.max(column - 1, 0));
+        return new vscode.Location(vscode.Uri.file(result.uri), position);
+      }
+    } catch (error) {
+      // Ignore errors and let the caller fall back to the default provider logic.
+    }
+
+    return undefined;
+  }
+
+  private locationToDefinitionLink(
+    location: vscode.Location,
+    position: vscode.Position,
+    start: number,
+    length: number
+  ): vscode.DefinitionLink {
+    const originSelectionRange = new vscode.Range(
+      new vscode.Position(position.line, start),
+      new vscode.Position(position.line, start + length)
+    );
+    return {
+      originSelectionRange,
+      targetRange: location.range,
+      targetSelectionRange: location.range,
+      targetUri: location.uri,
     };
   }
 
