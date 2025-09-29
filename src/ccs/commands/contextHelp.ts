@@ -2,8 +2,8 @@ import * as path from "path";
 import * as vscode from "vscode";
 
 import { AtelierAPI } from "../../api";
-import { SourceControlApi } from "../../api/ccs/sourceControl";
 import { handleError } from "../../utils";
+import { SourceControlApi } from "../sourcecontrol/client";
 
 interface ResolveContextExpressionResponse {
   status?: string;

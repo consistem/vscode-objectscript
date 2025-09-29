@@ -1,8 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import * as https from "https";
 import * as vscode from "vscode";
-
-import { AtelierAPI } from "../";
+import { AtelierAPI } from "../../api";
 
 export class SourceControlApi {
   private readonly client: AxiosInstance;
