@@ -1,11 +1,11 @@
 import * as vscode from "vscode";
 
-import { AtelierAPI } from "../../api";
-import { getCcsSettings } from "../config/settings";
-import { logDebug } from "../core/logging";
-import { ResolveContextExpressionResponse } from "../core/types";
-import { SourceControlApi } from "./client";
-import { ROUTES } from "./routes";
+import { AtelierAPI } from "../../../api";
+import { getCcsSettings } from "../../config/settings";
+import { logDebug } from "../../core/logging";
+import { ResolveContextExpressionResponse } from "../../core/types";
+import { SourceControlApi } from "../client";
+import { ROUTES } from "../routes";
 
 interface ResolveContextExpressionPayload {
   routine: string;

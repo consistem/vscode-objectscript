@@ -2,4 +2,4 @@ export { getCcsSettings, isFlagEnabled, type CcsSettings } from "./config/settin
 export { logDebug, logError, logInfo, logWarn } from "./core/logging";
 export { SourceControlApi } from "./sourcecontrol/client";
 export { resolveContextExpression } from "./commands/contextHelp";
-export { ContextExpressionClient } from "./sourcecontrol/contextExpressionClient";
+export { ContextExpressionClient } from "./sourcecontrol/clients/contextExpressionClient";

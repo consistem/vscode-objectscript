@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as vscode from "vscode";
 
-import { ContextExpressionClient } from "../sourcecontrol/contextExpressionClient";
+import { ContextExpressionClient } from "../sourcecontrol/clients/contextExpressionClient";
 import { handleError } from "../../utils";
 
 const sharedClient = new ContextExpressionClient();
