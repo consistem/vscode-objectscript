@@ -162,7 +162,13 @@ import {
 import { WorkspaceNode, NodeBase } from "./explorer/nodes";
 import { showPlanWebview } from "./commands/showPlanPanel";
 import { isfsConfig } from "./utils/FileProviderUtil";
-import { resolveContextExpression, showGlobalDocumentation } from "./ccs";
+import {
+  PrioritizedDefinitionProvider,
+  goToDefinitionLocalFirst,
+  resolveContextExpression,
+  showGlobalDocumentation,
+} from "./ccs";
+
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
 const aiKey = packageJson.aiKey;
@@ -1017,7 +1023,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       ),
       vscode.languages.registerDefinitionProvider(
         documentSelector(clsLangId, macLangId, intLangId, incLangId),
-        new ObjectScriptDefinitionProvider()
+        new PrioritizedDefinitionProvider(new ObjectScriptDefinitionProvider())
       ),
       vscode.languages.registerCompletionItemProvider(
         documentSelector(clsLangId, macLangId, intLangId, incLangId),
@@ -1262,6 +1268,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.resolveContextExpression", () => {
       sendCommandTelemetryEvent("resolveContextExpression");
       void resolveContextExpression();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.goToDefinition", async () => {
+      sendCommandTelemetryEvent("ccs.goToDefinition");
+      await goToDefinitionLocalFirst();
     }),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
       sendCommandTelemetryEvent("debug");
@@ -2176,3 +2186,4 @@ export async function deactivate(): Promise<void> {
   }
   await Promise.allSettled(promises);
 }
+export { outputChannel };

@@ -479,6 +479,15 @@
       ],
       "editor/context": [
         {
+          "command": "vscode-objectscript.ccs.goToDefinition",
+          "group": "navigation@0",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "-editor.action.revealDefinition",
+          "when": "editorLangId =~ /^objectscript/"
+        },
+        {
           "command": "vscode-objectscript.viewOthers",
           "when": "vscode-objectscript.connectActive",
           "group": "objectscript@1"
@@ -525,6 +534,16 @@
         }
       ],
       "editor/title": [
+        {
+          "command": "vscode-objectscript.ccs.goToDefinition",
+          "group": "navigation@0",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "-editor.action.revealDefinition",
+          "group": "navigation@0",
+          "when": "editorLangId =~ /^objectscript/"
+        },
         {
           "command": "vscode-objectscript.serverCommands.sourceControl",
           "group": "navigation@1",
@@ -849,6 +868,11 @@
         "command": "vscode-objectscript.getGlobalDocumentation",
         "title": "Show Global Documentation",
         "enablement": "vscode-objectscript.connectActive"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.ccs.goToDefinition",
+        "title": "Go to Definition"
       },
       {
         "category": "ObjectScript",
@@ -1218,6 +1242,11 @@
       }
     ],
     "keybindings": [
+      {
+        "command": "vscode-objectscript.ccs.goToDefinition",
+        "key": "F12",
+        "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+      },
       {
         "command": "vscode-objectscript.compile",
         "key": "Ctrl+F7",
