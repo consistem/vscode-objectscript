@@ -1,7 +1,10 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
-import * as https from "https";
-import * as vscode from "vscode";
+import { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+
 import { AtelierAPI } from "../../api";
+import { getCcsSettings } from "../config/settings";
+import { createHttpClient } from "../core/http";
+import { logDebug } from "../core/logging";
+import { BASE_PATH } from "./routes";
 
 export class SourceControlApi {
   private readonly client: AxiosInstance;
@@ -18,35 +21,37 @@ export class SourceControlApi {
     }
 
     const normalizedPrefix = pathPrefix ? (pathPrefix.startsWith("/") ? pathPrefix : `/${pathPrefix}`) : "";
-    const baseUrl = `${useHttps ? "https" : "http"}://${host}:${port}${encodeURI(normalizedPrefix)}`;
+    const trimmedPrefix = normalizedPrefix.endsWith("/") ? normalizedPrefix.slice(0, -1) : normalizedPrefix;
+    const encodedPrefix = encodeURI(trimmedPrefix);
+    const protocol = useHttps ? "https" : "http";
+    const defaultBaseUrl = `${protocol}://${host}:${port}${encodedPrefix}${BASE_PATH}`;
 
-    const httpsAgent = new https.Agent({
-      rejectUnauthorized: vscode.workspace.getConfiguration("http").get("proxyStrictSSL"),
-    });
+    const { endpoint, requestTimeout } = getCcsSettings();
+    const baseURL = endpoint ?? defaultBaseUrl;
+    const auth =
+      typeof username === "string" && typeof password === "string"
+        ? {
+            username,
+            password,
+          }
+        : undefined;
 
-    const client = axios.create({
-      baseURL: `${baseUrl}/api/sourcecontrol/vscode`,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      httpsAgent,
-      auth:
-        typeof username === "string" && typeof password === "string"
-          ? {
-              username,
-              password,
-            }
-          : undefined,
+    logDebug("Creating SourceControl API client", { baseURL, hasAuth: Boolean(auth) });
+
+    const client = createHttpClient({
+      baseURL,
+      auth,
+      defaultTimeout: requestTimeout,
     });
 
     return new SourceControlApi(client);
   }
 
   public post<T = unknown, R = AxiosResponse<T>>(
-    endpoint: string,
+    route: string,
     data?: unknown,
     config?: AxiosRequestConfig<unknown>
   ): Promise<R> {
-    return this.client.post<T, R>(endpoint, data, config);
+    return this.client.post<T, R>(route, data, config);
   }
 }
