@@ -162,7 +162,7 @@ import {
 import { WorkspaceNode, NodeBase } from "./explorer/nodes";
 import { showPlanWebview } from "./commands/showPlanPanel";
 import { isfsConfig } from "./utils/FileProviderUtil";
-import { resolveContextExpression } from "./commands/ccs/contextHelp";
+import { resolveContextExpression } from "./ccs";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
