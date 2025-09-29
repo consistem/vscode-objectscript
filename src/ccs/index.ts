@@ -3,3 +3,8 @@ export { logDebug, logError, logInfo, logWarn } from "./core/logging";
 export { SourceControlApi } from "./sourcecontrol/client";
 export { resolveContextExpression } from "./commands/contextHelp";
 export { ContextExpressionClient } from "./sourcecontrol/clients/contextExpressionClient";
+export { ResolveDefinitionClient } from "./sourcecontrol/clients/resolveDefinitionClient";
+export { lookupCcsDefinition, type LookupOptions } from "./features/definitionLookup/lookup";
+export { extractDefinitionQuery, type QueryMatch, type QueryKind } from "./features/definitionLookup/extractQuery";
+export { goToDefinitionLocalFirst } from "./commands/goToDefinitionLocalFirst";
+export { PrioritizedDefinitionProvider } from "./providers/PrioritizedDefinitionProvider";

@@ -475,6 +475,15 @@
       ],
       "editor/context": [
         {
+          "command": "vscode-objectscript.ccs.goToDefinition",
+          "group": "navigation@0",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "-editor.action.revealDefinition",
+          "when": "editorLangId =~ /^objectscript/"
+        },
+        {
           "command": "vscode-objectscript.viewOthers",
           "when": "vscode-objectscript.connectActive",
           "group": "objectscript@1"
@@ -521,6 +530,16 @@
         }
       ],
       "editor/title": [
+        {
+          "command": "vscode-objectscript.ccs.goToDefinition",
+          "group": "navigation@0",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "-editor.action.revealDefinition",
+          "group": "navigation@0",
+          "when": "editorLangId =~ /^objectscript/"
+        },
         {
           "command": "vscode-objectscript.serverCommands.sourceControl",
           "group": "navigation@1",
@@ -839,6 +858,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.resolveContextExpression",
         "title": "Resolve Context Expression"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.ccs.goToDefinition",
+        "title": "Go to Definition"
       },
       {
         "category": "ObjectScript",
@@ -1202,6 +1226,11 @@
       }
     ],
     "keybindings": [
+      {
+        "command": "vscode-objectscript.ccs.goToDefinition",
+        "key": "F12",
+        "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+      },
       {
         "command": "vscode-objectscript.compile",
         "key": "Ctrl+F7",
