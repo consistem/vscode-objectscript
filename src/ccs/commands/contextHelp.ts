@@ -1,15 +1,10 @@
 import * as path from "path";
 import * as vscode from "vscode";
 
-import { AtelierAPI } from "../../api";
-import { SourceControlApi } from "../../api/ccs/sourceControl";
+import { ContextExpressionClient } from "../sourcecontrol/clients/contextExpressionClient";
 import { handleError } from "../../utils";
 
-interface ResolveContextExpressionResponse {
-  status?: string;
-  textExpression?: string;
-  message?: string;
-}
+const sharedClient = new ContextExpressionClient();
 
 export async function resolveContextExpression(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
@@ -28,23 +23,11 @@ export async function resolveContextExpression(): Promise<void> {
   }
 
   const routine = path.basename(document.fileName);
-  const api = new AtelierAPI(document.uri);
-
-  let sourceControlApi: SourceControlApi;
-  try {
-    sourceControlApi = SourceControlApi.fromAtelierApi(api);
-  } catch (error) {
-    void vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
-    return;
-  }
 
   try {
-    const response = await sourceControlApi.post<ResolveContextExpressionResponse>("/resolveContextExpression", {
-      routine,
-      contextExpression,
-    });
+    const response = await sharedClient.resolve(document, { routine, contextExpression });
+    const data = response ?? {};
 
-    const data = response.data ?? {};
     if (typeof data.status === "string" && data.status.toLowerCase() === "success" && data.textExpression) {
       const eol = document.eol === vscode.EndOfLine.CRLF ? "\r\n" : "\n";
       const textExpression = data.textExpression.replace(/\r?\n/g, eol);
