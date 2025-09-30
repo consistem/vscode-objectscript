@@ -1098,6 +1098,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         }
 
         const newLine = event.document.lineAt(newLineNumber);
+        if (newLine.text.trim().length > 0) {
+          continue;
+        }
         if (newLine.text.startsWith(insertText)) {
           continue;
         }

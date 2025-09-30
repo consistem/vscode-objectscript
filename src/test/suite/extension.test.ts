@@ -91,6 +91,22 @@ suite("Extension Test Suite", () => {
     }
   });
 
+  test("Moving lines across dot-prefixed semicolon comments doesn't add semicolons", async () => {
+    const document = await vscode.workspace.openTextDocument({
+      language: "objectscript",
+      content: "  . Do ##class(Test).Run()\n  . ; Comment",
+    });
+    const editor = await vscode.window.showTextDocument(document);
+    try {
+      editor.selection = new vscode.Selection(new vscode.Position(0, 0), new vscode.Position(0, 0));
+      await vscode.commands.executeCommand("editor.action.moveLinesDownAction");
+      const expectedText = "  . ; Comment\n  . Do ##class(Test).Run()";
+      await waitForCondition(() => document.getText() === expectedText);
+      assert.strictEqual(document.getText(), expectedText);
+    } finally {
+      await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
+    }
+  });
   test("Go to Definition resolves to sibling workspace folder", async function () {
     this.timeout(10000);
     await waitForIndexedDocument("MultiRoot.Shared.cls", "shared");
