@@ -163,7 +163,7 @@ import { WorkspaceNode, NodeBase } from "./explorer/nodes";
 import { showPlanWebview } from "./commands/showPlanPanel";
 import { isfsConfig } from "./utils/FileProviderUtil";
 import { showAllClassMembers } from "./commands/showAllClassMembers";
-import { resolveContextExpression } from "./ccs";
+import { resolveContextExpression, showGlobalDocumentation } from "./ccs";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
@@ -1376,6 +1376,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.viewOthers", () => {
       sendCommandTelemetryEvent("viewOthers");
       viewOthers(false);
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.getGlobalDocumentation", () => {
+      sendCommandTelemetryEvent("getGlobalDocumentation");
+      void showGlobalDocumentation();
     }),
     vscode.commands.registerCommand("vscode-objectscript.serverCommands.sourceControl", (uri?: vscode.Uri) => {
       sendCommandTelemetryEvent("serverCommands.sourceControl");
