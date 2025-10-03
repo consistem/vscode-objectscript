@@ -3,7 +3,7 @@ export interface LocationJSON {
   line?: number;
 }
 
-export interface ResolveDefinitionResponse extends LocationJSON {}
+export type ResolveDefinitionResponse = LocationJSON;
 
 export interface ResolveContextExpressionResponse {
   status?: string;

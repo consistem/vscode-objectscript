@@ -990,6 +990,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   const languageServerExt =
     context.extensionMode && context.extensionMode !== vscode.ExtensionMode.Test ? languageServer() : null;
   const noLSsubscriptions: { dispose(): any }[] = [];
+  let definitionDelegate: ObjectScriptDefinitionProvider | undefined;
   if (!languageServerExt) {
     if (!config("ignoreInstallLanguageServer")) {
       outputChannel.appendLine("The intersystems.language-server extension is not installed or has been disabled.");
@@ -1016,10 +1017,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         documentSelector(clsLangId, macLangId, intLangId, incLangId),
         new DocumentFormattingEditProvider()
       ),
-      vscode.languages.registerDefinitionProvider(
-        documentSelector(clsLangId, macLangId, intLangId, incLangId),
-        new PrioritizedDefinitionProvider(new ObjectScriptDefinitionProvider())
-      ),
       vscode.languages.registerCompletionItemProvider(
         documentSelector(clsLangId, macLangId, intLangId, incLangId),
         new ObjectScriptCompletionItemProvider(),
@@ -1037,6 +1034,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
         new ObjectScriptRoutineSymbolProvider()
       )
     );
+    definitionDelegate = new ObjectScriptDefinitionProvider();
     context.subscriptions.push(...noLSsubscriptions);
   } else {
     const lsVersion = languageServerExt.packageJSON.version;
@@ -1054,6 +1052,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       );
     }
   }
+
+  context.subscriptions.push(
+    vscode.languages.registerDefinitionProvider(
+      documentSelector(clsLangId, macLangId, intLangId, incLangId),
+      new PrioritizedDefinitionProvider(definitionDelegate)
+    )
+  );
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument(async (event) => {

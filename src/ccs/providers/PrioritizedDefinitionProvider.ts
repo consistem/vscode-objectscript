@@ -1,14 +1,17 @@
 import * as vscode from "vscode";
 
 import { ObjectScriptDefinitionProvider } from "../../providers/ObjectScriptDefinitionProvider";
+import { logDebug } from "../core/logging";
 import { lookupCcsDefinition } from "../features/definitionLookup/lookup";
 
+const shouldLogResolver = Boolean(process.env.VSCODE_OBJECTSCRIPT_DEBUG_CCS_RESOLVER);
+
 export class PrioritizedDefinitionProvider implements vscode.DefinitionProvider {
-  private readonly delegate: ObjectScriptDefinitionProvider;
+  private readonly delegate?: ObjectScriptDefinitionProvider;
   private readonly lookup: typeof lookupCcsDefinition;
 
   public constructor(
-    delegate: ObjectScriptDefinitionProvider,
+    delegate?: ObjectScriptDefinitionProvider,
     lookupFn: typeof lookupCcsDefinition = lookupCcsDefinition
   ) {
     this.delegate = delegate;
@@ -26,9 +29,30 @@ export class PrioritizedDefinitionProvider implements vscode.DefinitionProvider 
       },
     });
     if (location) {
+      this.logResolverPath("Resolved definition via CCS", {
+        uri: location.uri.toString(),
+        line: location.range.start.line,
+      });
       return location;
     }
 
+    if (!this.delegate) {
+      this.logResolverPath("CCS definition lookup returned no result; no delegate available");
+      return undefined;
+    }
+
+    this.logResolverPath("CCS definition lookup returned no result; invoking delegate fallback");
     return this.delegate.provideDefinition(document, position, token);
+  }
+
+  private logResolverPath(message: string, details?: Record<string, unknown>): void {
+    if (!shouldLogResolver) {
+      return;
+    }
+    if (details) {
+      logDebug(message, details);
+    } else {
+      logDebug(message);
+    }
   }
 }
