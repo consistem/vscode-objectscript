@@ -17,6 +17,46 @@ export class ResolveDefinitionClient {
     this.apiFactory = apiFactory;
   }
 
+  private getAdditionalNamespaces(currentApi: AtelierAPI): string[] {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders?.length) {
+      return [];
+    }
+
+    const { host, port } = currentApi.config;
+    const currentPathPrefix = currentApi.config.pathPrefix ?? "";
+    const currentNamespace = currentApi.ns;
+
+    if (!host || !port) {
+      return [];
+    }
+
+    const namespaces = new Set<string>();
+
+    for (const folder of workspaceFolders) {
+      const folderApi = new AtelierAPI(folder.uri);
+      if (!folderApi.active) {
+        continue;
+      }
+
+      const { host: folderHost, port: folderPort } = folderApi.config;
+      const folderPathPrefix = folderApi.config.pathPrefix ?? "";
+
+      if (folderHost !== host || folderPort !== port || folderPathPrefix !== currentPathPrefix) {
+        continue;
+      }
+
+      const folderNamespace = folderApi.ns;
+      if (!folderNamespace || folderNamespace === currentNamespace) {
+        continue;
+      }
+
+      namespaces.add(folderNamespace.toUpperCase());
+    }
+
+    return Array.from(namespaces);
+  }
+
   public async resolve(
     document: vscode.TextDocument,
     query: string,
@@ -49,10 +89,20 @@ export class ResolveDefinitionClient {
     const { requestTimeout } = getCcsSettings();
     const { signal, dispose } = createAbortSignal(token);
 
+    const otherNamespaces = this.getAdditionalNamespaces(api);
+    const otherNamespacesStr = otherNamespaces.join(";");
+    const body = otherNamespaces.length ? { query, otherNamespaces: otherNamespacesStr } : { query };
+
+    logDebug("CCS definition lookup request", {
+      namespace,
+      endpoint: ROUTES.resolveDefinition(namespace),
+      body,
+    });
+
     try {
       const response = await sourceControlApi.post<ResolveDefinitionResponse>(
         ROUTES.resolveDefinition(namespace),
-        { query },
+        body,
         {
           timeout: requestTimeout,
           signal,
