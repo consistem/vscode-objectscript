@@ -964,10 +964,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   const documentSelector = (...list) =>
     ["file", ...schemas].reduce((acc, scheme) => acc.concat(list.map((language) => ({ scheme, language }))), []);
 
+  const definitionDocumentLinkProvider = new DefinitionDocumentLinkProvider([
+    clsLangId,
+    macLangId,
+    intLangId,
+    incLangId,
+  ]);
   context.subscriptions.push(
+    definitionDocumentLinkProvider,
     vscode.languages.registerDocumentLinkProvider(
       documentSelector(clsLangId, macLangId, intLangId, incLangId),
-      new DefinitionDocumentLinkProvider()
+      definitionDocumentLinkProvider
     )
   );
 
