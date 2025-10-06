@@ -5,3 +5,17 @@ export { resolveContextExpression } from "./commands/contextHelp";
 export { showGlobalDocumentation } from "./commands/globalDocumentation";
 export { ContextExpressionClient } from "./sourcecontrol/clients/contextExpressionClient";
 export { GlobalDocumentationClient } from "./sourcecontrol/clients/globalDocumentationClient";
+export { ResolveDefinitionClient } from "./sourcecontrol/clients/resolveDefinitionClient";
+export { lookupCcsDefinition, type LookupOptions } from "./features/definitionLookup/lookup";
+export {
+  extractDefinitionQuery,
+  extractDefinitionQueries,
+  type QueryMatch,
+  type QueryKind,
+} from "./features/definitionLookup/extractQuery";
+export { goToDefinitionLocalFirst } from "./commands/goToDefinitionLocalFirst";
+export { PrioritizedDefinitionProvider } from "./providers/PrioritizedDefinitionProvider";
+export {
+  DefinitionDocumentLinkProvider,
+  followDefinitionLinkCommand,
+} from "./providers/DefinitionDocumentLinkProvider";

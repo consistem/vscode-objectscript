@@ -1,19 +1,15 @@
 {
   "folders": [
     {
-      "name": "client",
-      "path": "multi-root/client"
+      "path": "."
     },
-    {
-      "name": "shared",
-      "path": "multi-root/shared"
-    }
   ],
   "settings": {
     "objectscript.conn": {
       "active": false
     },
     "objectscript.ignoreInstallServerManager": true,
-    "intersystems.servers": {}
+    "intersystems.servers": {
+    }
   }
 }
