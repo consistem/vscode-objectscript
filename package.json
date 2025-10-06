@@ -876,6 +876,11 @@
       },
       {
         "category": "ObjectScript",
+        "command": "vscode-objectscript.ccs.followDefinitionLink",
+        "title": "Follow Definition Link"
+      },
+      {
+        "category": "ObjectScript",
         "command": "vscode-objectscript.compile",
         "title": "Import and Compile Current File"
       },
