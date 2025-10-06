@@ -162,7 +162,15 @@ import {
 import { WorkspaceNode, NodeBase } from "./explorer/nodes";
 import { showPlanWebview } from "./commands/showPlanPanel";
 import { isfsConfig } from "./utils/FileProviderUtil";
-import { resolveContextExpression, showGlobalDocumentation } from "./ccs";
+import {
+  PrioritizedDefinitionProvider,
+  DefinitionDocumentLinkProvider,
+  followDefinitionLinkCommand,
+  goToDefinitionLocalFirst,
+  resolveContextExpression,
+  showGlobalDocumentation,
+} from "./ccs";
+
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
 const extensionVersion = packageJson.version;
 const aiKey = packageJson.aiKey;
@@ -956,6 +964,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   const documentSelector = (...list) =>
     ["file", ...schemas].reduce((acc, scheme) => acc.concat(list.map((language) => ({ scheme, language }))), []);
 
+  const definitionDocumentLinkProvider = new DefinitionDocumentLinkProvider([
+    clsLangId,
+    macLangId,
+    intLangId,
+    incLangId,
+  ]);
+  context.subscriptions.push(
+    definitionDocumentLinkProvider,
+    vscode.languages.registerDocumentLinkProvider(
+      documentSelector(clsLangId, macLangId, intLangId, incLangId),
+      definitionDocumentLinkProvider
+    )
+  );
+
   const diagnosticProvider = new ObjectScriptDiagnosticProvider();
 
   // Gather the proposed APIs we will register to use when building with enabledApiProposals != []
@@ -1017,7 +1039,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       ),
       vscode.languages.registerDefinitionProvider(
         documentSelector(clsLangId, macLangId, intLangId, incLangId),
-        new ObjectScriptDefinitionProvider()
+        new PrioritizedDefinitionProvider(new ObjectScriptDefinitionProvider())
       ),
       vscode.languages.registerCompletionItemProvider(
         documentSelector(clsLangId, macLangId, intLangId, incLangId),
@@ -1263,6 +1285,32 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("resolveContextExpression");
       void resolveContextExpression();
     }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.goToDefinition", async () => {
+      sendCommandTelemetryEvent("ccs.goToDefinition");
+      await goToDefinitionLocalFirst();
+    }),
+    vscode.commands.registerCommand(
+      followDefinitionLinkCommand,
+      async (documentUri: string, line: number, character: number) => {
+        sendCommandTelemetryEvent("ccs.followDefinitionLink");
+        if (!documentUri || typeof line !== "number" || typeof character !== "number") {
+          return;
+        }
+
+        const uri = vscode.Uri.parse(documentUri);
+        const document =
+          vscode.workspace.textDocuments.find((doc) => doc.uri.toString() === documentUri) ??
+          (await vscode.workspace.openTextDocument(uri));
+
+        const position = new vscode.Position(line, character);
+        const selectionRange = new vscode.Range(position, position);
+        const editor = await vscode.window.showTextDocument(document, { selection: selectionRange });
+        editor.selection = new vscode.Selection(position, position);
+        editor.revealRange(selectionRange);
+
+        await goToDefinitionLocalFirst();
+      }
+    ),
     vscode.commands.registerCommand("vscode-objectscript.debug", (program: string, askArgs: boolean) => {
       sendCommandTelemetryEvent("debug");
       const startDebugging = (args) => {
@@ -2176,3 +2224,4 @@ export async function deactivate(): Promise<void> {
   }
   await Promise.allSettled(promises);
 }
+export { outputChannel };
