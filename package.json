@@ -63,6 +63,7 @@
     "workspaceContains:**/*.csp",
     "workspaceContains:**/*.csr",
     "onCommand:vscode-objectscript.explorer.open",
+    "onCommand:vscode-objectscript.ccs.createItem",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",
@@ -652,6 +653,11 @@
       ],
       "file/newFile": [
         {
+          "command": "vscode-objectscript.ccs.createItem",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
           "command": "vscode-objectscript.newFile.kpi",
           "when": "workspaceFolderCount != 0",
           "group": "file"
@@ -882,6 +888,11 @@
         "category": "ObjectScript",
         "command": "vscode-objectscript.ccs.followSourceAnalysisLink",
         "title": "Follow Source Analysis Link"
+      },
+      {
+        "category": "CCS",
+        "command": "vscode-objectscript.ccs.createItem",
+        "title": "Create Item"
       },
       {
         "category": "ObjectScript",
