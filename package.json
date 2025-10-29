@@ -63,7 +63,6 @@
     "workspaceContains:**/*.csp",
     "workspaceContains:**/*.csr",
     "onCommand:vscode-objectscript.explorer.open",
-    "onCommand:vscode-objectscript.ccs.createItem",
     "onLanguage:objectscript",
     "onLanguage:objectscript-int",
     "onLanguage:objectscript-class",
@@ -890,7 +889,7 @@
         "title": "Follow Source Analysis Link"
       },
       {
-        "category": "CCS",
+        "category": "Consistem",
         "command": "vscode-objectscript.ccs.createItem",
         "title": "Create Item"
       },

@@ -8,15 +8,29 @@ import { SourceControlApi } from "../sourcecontrol/client";
 import { CreateItemClient } from "../sourcecontrol/clients/createItemClient";
 import { getCcsSettings } from "../config/settings";
 
-async function promptForItemName(): Promise<string | undefined> {
+interface PromptForItemNameOptions {
+  initialValue?: string;
+  validationMessage?: string;
+}
+
+async function promptForItemName(options: PromptForItemNameOptions = {}): Promise<string | undefined> {
   const hasValidExt = (s: string) => /\.cls$/i.test(s) || /\.mac$/i.test(s);
   const hasBadChars = (s: string) => /[\\/]/.test(s) || /\s/.test(s);
 
   const ib = vscode.window.createInputBox();
-  ib.title = "Create InterSystems Item";
-  ib.prompt = "Enter the name of the class or routine to create (.cls or .mac)";
-  ib.placeholder = "MyPackage.MyClass.cls or CCTRIB001.mac";
+  ib.title = "Criar Item Consistem";
+  ib.prompt = "Informe o nome da classe ou rotina a ser criada (.cls ou .mac)";
+  ib.placeholder = "MeuPacote.MinhaClasse.cls ou MINHAROTINA.mac";
   ib.ignoreFocusOut = true;
+  if (options.initialValue) {
+    ib.value = options.initialValue;
+  }
+  if (options.validationMessage) {
+    ib.validationMessage = {
+      message: options.validationMessage,
+      severity: vscode.InputBoxValidationSeverity.Error,
+    };
+  }
 
   return await new Promise<string | undefined>((resolve) => {
     const disposeAll = () => {
@@ -36,19 +50,22 @@ async function promptForItemName(): Promise<string | undefined> {
       const name = ib.value.trim();
 
       if (!name) {
-        ib.validationMessage = { message: "Item name is required", severity: vscode.InputBoxValidationSeverity.Error };
+        ib.validationMessage = {
+          message: "Informe o nome do item",
+          severity: vscode.InputBoxValidationSeverity.Error,
+        };
         return;
       }
       if (hasBadChars(name)) {
         ib.validationMessage = {
-          message: "Invalid name: avoid spaces and path separators",
+          message: "Nome inválido: não use espaços nem separadores de caminho (\\ ou /)",
           severity: vscode.InputBoxValidationSeverity.Error,
         };
         return;
       }
       if (!hasValidExt(name)) {
         ib.validationMessage = {
-          message: "Please include a valid extension: .cls or .mac",
+          message: "Inclua uma extensão válida: .cls ou .mac",
           severity: vscode.InputBoxValidationSeverity.Error,
         };
         return;
@@ -142,6 +159,24 @@ function getErrorMessage(err: unknown): string | undefined {
   return undefined;
 }
 
+function getApiValidationMessage(err: unknown): string | undefined {
+  const anyErr = err as any;
+  const response = anyErr?.response;
+  if (!response?.data) return undefined;
+
+  const status = typeof response.status === "number" ? response.status : undefined;
+  if (typeof status === "number" && status >= 500) {
+    return undefined;
+  }
+
+  const data = response.data;
+  if (typeof data === "string" && data.trim()) return data.trim();
+  if (typeof data?.error === "string" && data.error.trim()) return data.error.trim();
+  if (typeof data?.message === "string" && data.message.trim()) return data.message.trim();
+  if (typeof data?.Message === "string" && data.Message.trim()) return data.Message.trim();
+  return undefined;
+}
+
 export async function createItem(): Promise<void> {
   const workspaceFolder = await getWsFolder(
     "Pick the workspace folder where you want to create the item",
@@ -171,13 +206,6 @@ export async function createItem(): Promise<void> {
   }
   const namespace = ns.toUpperCase();
 
-  const itemName = await promptForItemName();
-  if (!itemName) {
-    return;
-  }
-
-  logDebug("CCS createItem invoked", { namespace, itemName });
-
   let sourceControlApi: SourceControlApi;
   try {
     sourceControlApi = SourceControlApi.fromAtelierApi(api);
@@ -192,61 +220,85 @@ export async function createItem(): Promise<void> {
   const { requestTimeout } = getCcsSettings();
   const backoff = Math.min(500, Math.max(150, Math.floor(requestTimeout * 0.1)));
 
-  try {
-    const { data, status } = await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: "Creating item...",
-        cancellable: false,
-      },
-      async () => withTimeoutRetry(() => createItemClient.create(namespace, itemName), 2, backoff)
-    );
+  let lastValue: string | undefined;
+  let lastValidationMessage: string | undefined;
 
-    if (data.error) {
-      logError("CCS createItem failed", { namespace, itemName, status, error: data.error });
-      void vscode.window.showErrorMessage(data.error);
+  while (true) {
+    const itemName = await promptForItemName({ initialValue: lastValue, validationMessage: lastValidationMessage });
+    if (!itemName) {
       return;
     }
 
-    if (status < 200 || status >= 300) {
-      const message = `Item creation failed with status ${status}.`;
-      logError("CCS createItem failed", { namespace, itemName, status });
-      void vscode.window.showErrorMessage(message);
-      return;
-    }
+    lastValue = itemName;
+    lastValidationMessage = undefined;
 
-    if (!data.file) {
-      const message = "Item created on server but no file path was returned.";
-      logError("CCS createItem missing file path", { namespace, itemName, response: data });
-      void vscode.window.showErrorMessage(message);
-      return;
-    }
+    logDebug("Consistem createItem invoked", { namespace, itemName });
 
     try {
-      await openCreatedFile(data.file);
-    } catch (openErr) {
-      logError("Failed to open created file", { file: data.file, error: openErr });
-      void vscode.window.showWarningMessage("Item created, but the returned file could not be opened.");
-    }
+      const { data, status } = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: "Creating item...",
+          cancellable: false,
+        },
+        async () => withTimeoutRetry(() => createItemClient.create(namespace, itemName), 2, backoff)
+      );
 
-    const createdNamespace = data.namespace ?? namespace;
-    const createdItem = (data as any).itemIdCriado ?? itemName;
-    const moduleName = extractModuleName(data.file, workspaceFolder);
-    const location = moduleName ? `${createdNamespace}/${moduleName}` : createdNamespace;
-    const successMessage = `Item created successfully in ${location}: ${createdItem}`;
-    logInfo("CCS createItem succeeded", {
-      namespace: createdNamespace,
-      module: moduleName,
-      itemName: createdItem,
-      file: data.file,
-    });
-    void vscode.window.showInformationMessage(successMessage);
-  } catch (error) {
-    const errorMessage =
-      (CreateItemClient as any).getErrorMessage?.(error) ??
-      getErrorMessage(error) ??
-      (isTimeoutError(error) ? "Item creation timed out." : "Item creation failed.");
-    logError("CCS createItem encountered an unexpected error", error);
-    void vscode.window.showErrorMessage(errorMessage);
+      if (data.error) {
+        logError("Consistem createItem failed", { namespace, itemName, status, error: data.error });
+        lastValidationMessage = data.error;
+        continue;
+      }
+
+      if (status < 200 || status >= 300) {
+        const message = `Item creation failed with status ${status}.`;
+        logError("Consistem createItem failed", { namespace, itemName, status });
+        void vscode.window.showErrorMessage(message);
+        return;
+      }
+
+      if (!data.file) {
+        const message = "Item created on server but no file path was returned.";
+        logError("Consistem createItem missing file path", { namespace, itemName, response: data });
+        void vscode.window.showErrorMessage(message);
+        return;
+      }
+
+      try {
+        await openCreatedFile(data.file);
+      } catch (openErr) {
+        logError("Failed to open created file", { file: data.file, error: openErr });
+        void vscode.window.showWarningMessage("Item created, but the returned file could not be opened.");
+      }
+
+      const createdNamespace = data.namespace ?? namespace;
+      const createdItem = (data as any).itemIdCriado ?? itemName;
+      const moduleName = extractModuleName(data.file, workspaceFolder);
+      const location = moduleName ? `${createdNamespace}/${moduleName}` : createdNamespace;
+      const successMessage = `Item created successfully in ${location}: ${createdItem}`;
+      logInfo("Consistem createItem succeeded", {
+        namespace: createdNamespace,
+        module: moduleName,
+        itemName: createdItem,
+        file: data.file,
+      });
+      void vscode.window.showInformationMessage(successMessage);
+      return;
+    } catch (error) {
+      const apiValidationMessage = getApiValidationMessage(error);
+      if (apiValidationMessage) {
+        logError("Consistem createItem API validation failed", { namespace, itemName, error: apiValidationMessage });
+        lastValidationMessage = apiValidationMessage;
+        continue;
+      }
+
+      const errorMessage =
+        (CreateItemClient as any).getErrorMessage?.(error) ??
+        getErrorMessage(error) ??
+        (isTimeoutError(error) ? "Item creation timed out." : "Item creation failed.");
+      logError("Consistem createItem encountered an unexpected error", error);
+      void vscode.window.showErrorMessage(errorMessage);
+      return;
+    }
   }
 }
