@@ -1263,7 +1263,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("copyToClipboard");
       vscode.env.clipboard.writeText(command);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.resolveContextExpression", () => {
+    vscode.commands.registerCommand("vscode-objectscript.ccs.resolveContextExpression", () => {
       sendCommandTelemetryEvent("resolveContextExpression");
       void resolveContextExpression();
     }),
@@ -1394,7 +1394,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("viewOthers");
       viewOthers(false);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.getGlobalDocumentation", () => {
+    vscode.commands.registerCommand("vscode-objectscript.ccs.getGlobalDocumentation", () => {
       sendCommandTelemetryEvent("getGlobalDocumentation");
       void showGlobalDocumentation();
     }),
