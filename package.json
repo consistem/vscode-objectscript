@@ -1211,6 +1211,11 @@
         "when": "editorTextFocus && editorLangId =~ /^objectscript/"
       },
       {
+        "command": "vscode-objectscript.ccs.createItem",
+        "key": "Ctrl+N",
+        "when": "workspaceFolderCount != 0 && (editorLangId =~ /^objectscript/ || !editorIsOpen)"
+      },
+      {
         "command": "vscode-objectscript.compile",
         "key": "Ctrl+F7",
         "mac": "Cmd+F7",
