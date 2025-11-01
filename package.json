@@ -822,12 +822,6 @@
       },
       {
         "category": "Consistem",
-        "command": "vscode-objectscript.ccs.getGlobalDocumentation",
-        "title": "Show Global Documentation",
-        "enablement": "vscode-objectscript.connectActive"
-      },
-      {
-        "category": "Consistem",
         "command": "vscode-objectscript.ccs.goToDefinition",
         "title": "Go to Definition"
       },
