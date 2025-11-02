@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { handleError } from "../utils";
+import { maybeHandleDefinitionAccept } from "../ccs/features/jumpToTagAndOffset/definitionJumpBridge"; // [Consistem] hook mínimo
 
 export async function jumpToTagAndOffset(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
@@ -27,10 +28,20 @@ export async function jumpToTagAndOffset(): Promise<void> {
       };
     });
   const quickPick = vscode.window.createQuickPick();
-  quickPick.title = "Jump to Tag + Offset";
+  // quickPick.title = "Jump to Tag + Offset";
+  quickPick.title = "Consistem - Ir para Label + Offset + Rotina";
   quickPick.items = items;
   quickPick.canSelectMany = false;
-  quickPick.onDidAccept(() => {
+
+  // [Consistem] Tornamos assíncrono para permitir desvio condicional.
+  quickPick.onDidAccept(async () => {
+    // [Consistem] Hook: se o valor digitado for no formato Label+Offset^Rotina,
+    // tratamos no nosso módulo e encerramos aqui, sem tocar no fluxo local.
+    const handled = await maybeHandleDefinitionAccept(quickPick);
+    if (handled) {
+      quickPick.hide();
+      return;
+    }
     if (
       quickPick.selectedItems.length &&
       !new RegExp(`^${quickPick.selectedItems[0].label}(\\+\\d+)?$`).test(quickPick.value)
