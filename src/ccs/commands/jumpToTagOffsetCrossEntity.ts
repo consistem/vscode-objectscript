@@ -24,6 +24,9 @@ const ROUTINE_NAME_PATTERN = new RegExp(`^${IDENTIFIER_START}${IDENTIFIER_BODY}*
 const CLASS_METHOD_NAME_PATTERN = new RegExp(`^${IDENTIFIER_START}${IDENTIFIER_BODY}*$`);
 const ROUTINE_LABEL_NAME_PATTERN = new RegExp(`^[A-Za-z0-9_%][A-Za-z0-9_%]*$`);
 
+const JUMP_QP_CONTEXT_KEY = "vscode-objectscript.ccs.jumpToTagQuickPickActive";
+const INSERT_SELECTION_COMMAND_ID = "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity.insertSelection";
+
 type EntityKind = "class" | "routine" | "unknown";
 
 interface LocalNameInfo {
@@ -98,12 +101,31 @@ async function promptWithQuickPick(
   docCtx: DocContext
 ): Promise<ParseSuccess | undefined> {
   const qp = vscode.window.createQuickPick<vscode.QuickPickItem>();
-  qp.title = "Consistem — Ir para Nome + Offset ^ Item";
+  qp.title = "Consistem — Ir para Definição + Offset ^ Item";
   qp.placeholder = docCtx.placeholder;
   qp.ignoreFocusOut = true;
   qp.matchOnDescription = true;
   qp.matchOnDetail = true;
   qp.canSelectMany = false;
+
+  const disposables: vscode.Disposable[] = [];
+  let cleanedUp = false;
+
+  const cleanup = () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    while (disposables.length) {
+      const d = disposables.pop();
+      try {
+        d?.dispose();
+      } catch {
+        // Ignore dispose errors.
+      }
+    }
+    void vscode.commands.executeCommand("setContext", JUMP_QP_CONTEXT_KEY, false);
+  };
+
+  void vscode.commands.executeCommand("setContext", JUMP_QP_CONTEXT_KEY, true);
 
   let lastParse: ParseSuccess | undefined;
   let lastValidatedValue: string | undefined;
@@ -152,6 +174,34 @@ async function promptWithQuickPick(
     return p;
   }
 
+  const applySelectedItemToValue = ({ revalidate }: { revalidate?: boolean } = {}): boolean => {
+    const picked = qp.selectedItems[0] ?? qp.activeItems[0];
+    if (!picked) return false;
+
+    const trimmed = qp.value.trim();
+    const normalized = replaceNameInExpression(trimmed, picked.label);
+    if (normalized === qp.value) return false;
+
+    qp.value = normalized;
+
+    try {
+      (qp as any).selectedItems = [];
+    } catch {
+      // Ignore errors from manipulating QuickPick internals.
+    }
+
+    if (revalidate && qp.value.trim() !== "") {
+      void runValidation(qp.value, localNames, docCtx, false);
+    }
+
+    return true;
+  };
+
+  const insertSelectionDisposable = vscode.commands.registerCommand(INSERT_SELECTION_COMMAND_ID, () => {
+    applySelectedItemToValue({ revalidate: true });
+  });
+  disposables.push(insertSelectionDisposable);
+
   qp.onDidChangeValue((value) => {
     if (value.trim() === "") {
       lastParse = undefined;
@@ -164,24 +214,9 @@ async function promptWithQuickPick(
 
   const accepted = new Promise<ParseSuccess | undefined>((resolve) => {
     qp.onDidAccept(async () => {
+      applySelectedItemToValue();
+
       const trimmed = qp.value.trim();
-
-      if (qp.selectedItems.length) {
-        const picked = qp.selectedItems[0];
-        const normalized = replaceNameInExpression(trimmed, picked.label);
-        if (normalized !== trimmed) {
-          qp.value = normalized;
-
-          try {
-            (qp as any).selectedItems = [];
-          } catch {
-            // Ignore errors from manipulating QuickPick internals.
-          }
-
-          if (qp.value.trim() !== "") void runValidation(qp.value, localNames, docCtx, false);
-          return;
-        }
-      }
 
       if (trimmed === "") {
         vscode.window.showErrorMessage(ERR_NAME_REQUIRED);
@@ -200,13 +235,13 @@ async function promptWithQuickPick(
       if (!lastParse) return;
 
       resolve(lastParse);
-      qp.hide();
+      cleanup();
       qp.dispose();
     });
 
     qp.onDidHide(() => {
       resolve(undefined);
-      qp.dispose();
+      cleanup();
     });
   });
 

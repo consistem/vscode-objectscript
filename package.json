@@ -888,6 +888,12 @@
         "title": "Go to Name + Offset ^ Item"
       },
       {
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity.insertSelection",
+        "title": "Insert Selected Name (Consistem Quick Pick)",
+        "enablement": "inQuickOpen && vscode-objectscript.ccs.jumpToTagQuickPickActive"
+      },
+      {
         "category": "ObjectScript",
         "command": "vscode-objectscript.export",
         "title": "Export Code from Server"
@@ -1299,6 +1305,11 @@
         "key": "Ctrl+Q",
         "mac": "Cmd+Q",
         "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+      },
+      {
+        "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity.insertSelection",
+        "key": "Tab",
+        "when": "inQuickOpen && vscode-objectscript.ccs.jumpToTagQuickPickActive"
       },
       {
         "command": "vscode-objectscript.viewOthers",
