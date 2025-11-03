@@ -249,9 +249,20 @@ async function promptWithQuickPick(
   return accepted;
 }
 
+/**
+ * Adds a non-selectable tip at the top of the QuickPick using a separator.
+ * This avoids interfering with selection while informing the shortcuts.
+ */
 function buildLocalItems(localNames: LocalNamesMap): vscode.QuickPickItem[] {
+  // Non-selectable header (separator) with the tip
+  const infoSeparator = {
+    label: "Tab ↹ Inserir • Enter ↩ Navegar",
+    kind: vscode.QuickPickItemKind.Separator,
+  } as unknown as vscode.QuickPickItem; // keep type compatible for qp.items
+
   if (!localNames.size) {
     return [
+      infoSeparator,
       {
         label: "Nenhum nome local encontrado",
         description: "—",
@@ -261,13 +272,16 @@ function buildLocalItems(localNames: LocalNamesMap): vscode.QuickPickItem[] {
     ];
   }
 
-  return [...localNames.values()]
+  const items = [...localNames.values()]
     .sort((a, b) => a.line - b.line || a.originalName.localeCompare(b.originalName))
     .map((info) => ({
       label: info.originalName,
       description: "definição local",
       detail: `linha ${info.line + 1}`,
     }));
+
+  // Keep the informative separator on top.
+  return [infoSeparator, ...items];
 }
 
 /** Replaces only the "name" portion in the expression, preserving +offset and ^item. */
