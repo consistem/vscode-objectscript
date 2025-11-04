@@ -26,12 +26,16 @@ const ROUTINE_LABEL_NAME_PATTERN = new RegExp(`^[A-Za-z0-9_%][A-Za-z0-9_%]*$`);
 
 const JUMP_QP_CONTEXT_KEY = "vscode-objectscript.ccs.jumpToTagQuickPickActive";
 const INSERT_SELECTION_COMMAND_ID = "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity.insertSelection";
+const QUICK_PICK_OVERLAY_LINE_PADDING = 6;
+const EXTRA_LINES_BELOW_QP = 2;
 
 type EntityKind = "class" | "routine" | "unknown";
 
 interface LocalNameInfo {
   readonly line: number;
   readonly originalName: string;
+  readonly selectionRange?: vscode.Range;
+  readonly blockRange?: vscode.Range;
 }
 
 type LocalNamesMap = Map<string, LocalNameInfo>;
@@ -80,7 +84,14 @@ export async function jumpToTagAndOffsetCrossEntity(): Promise<void> {
   let pendingValidationError: string | undefined;
 
   while (true) {
-    const parsed = await promptWithQuickPick(previousValue, pendingValidationError, localNames, docCtx);
+    const parsed = await promptWithQuickPick(
+      previousValue,
+      pendingValidationError,
+      localNames,
+      docCtx,
+      document,
+      editor
+    );
     if (!parsed) return;
 
     previousValue = parsed.input;
@@ -98,10 +109,18 @@ async function promptWithQuickPick(
   previousValue: string | undefined,
   initialValidationError: string | undefined,
   localNames: LocalNamesMap,
-  docCtx: DocContext
+  docCtx: DocContext,
+  document: vscode.TextDocument,
+  editor: vscode.TextEditor
 ): Promise<ParseSuccess | undefined> {
+  // Remember where the user was before opening the QuickPick,
+  // so we can restore on ESC (cancel).
+  const originalSelection = editor.selection;
+  const originalVisible = editor.visibleRanges?.[0];
+  let wasAccepted = false;
+
   const qp = vscode.window.createQuickPick<vscode.QuickPickItem>();
-  qp.title = "Consistem — Ir para Definição + Offset ^ Item";
+  qp.title = "Navegar para Definição (+Offset ^Item)";
   qp.placeholder = docCtx.placeholder;
   qp.ignoreFocusOut = true;
   qp.matchOnDescription = true;
@@ -110,6 +129,74 @@ async function promptWithQuickPick(
 
   const disposables: vscode.Disposable[] = [];
   let cleanedUp = false;
+
+  const blockHighlightDecoration = vscode.window.createTextEditorDecorationType({
+    backgroundColor: new vscode.ThemeColor("editor.rangeHighlightBackground"),
+    isWholeLine: true,
+  });
+  disposables.push(blockHighlightDecoration);
+
+  const highlightDecoration = vscode.window.createTextEditorDecorationType({
+    borderColor: new vscode.ThemeColor("editor.selectionHighlightBorder"),
+    borderStyle: "solid",
+    borderWidth: "1px",
+  });
+  disposables.push(highlightDecoration);
+
+  let lastHighlightedRange: vscode.Range | undefined;
+  let lastHighlightedBlockRange: vscode.Range | undefined;
+
+  const clearHighlight = () => {
+    if (!lastHighlightedRange && !lastHighlightedBlockRange) return;
+    lastHighlightedRange = undefined;
+    lastHighlightedBlockRange = undefined;
+    editor.setDecorations(highlightDecoration, []);
+    editor.setDecorations(blockHighlightDecoration, []);
+  };
+
+  const highlightInfo = (info?: LocalNameInfo) => {
+    if (!info) {
+      clearHighlight();
+      return;
+    }
+
+    const range = info.selectionRange ?? document.lineAt(info.line).range;
+    const blockRange = info.blockRange ?? range;
+    lastHighlightedRange = range;
+    lastHighlightedBlockRange = blockRange;
+    editor.setDecorations(blockHighlightDecoration, [blockRange]);
+    editor.setDecorations(highlightDecoration, [range]);
+
+    // Keep highlighted block below the QuickPick overlay.
+    // We derive a dynamic padding from the current visible height,
+    // falling back to the fixed constant when needed.
+    const visible = editor.visibleRanges?.[0];
+    const visibleHeight = visible
+      ? Math.max(0, visible.end.line - visible.start.line)
+      : QUICK_PICK_OVERLAY_LINE_PADDING * 3;
+    const dynamicGap = Math.floor(visibleHeight * 0.35);
+    const gap = Math.max(QUICK_PICK_OVERLAY_LINE_PADDING, dynamicGap) + EXTRA_LINES_BELOW_QP;
+
+    const revealStartLine = Math.max(blockRange.start.line - gap, 0);
+    const revealRangeStart = new vscode.Position(revealStartLine, 0);
+    const revealRange = new vscode.Range(revealRangeStart, blockRange.end);
+    editor.revealRange(revealRange, vscode.TextEditorRevealType.AtTop);
+  };
+
+  const updateHighlightFromItem = (item: vscode.QuickPickItem | undefined) => {
+    if (!item) {
+      clearHighlight();
+      return;
+    }
+
+    // Ignore tip item (first blank row)
+    if ((item as any).__isTipItem) {
+      clearHighlight();
+      return;
+    }
+    const info = localNames.get(item.label.toLowerCase());
+    highlightInfo(info);
+  };
 
   const cleanup = () => {
     if (cleanedUp) return;
@@ -122,6 +209,7 @@ async function promptWithQuickPick(
         // Ignore dispose errors.
       }
     }
+    clearHighlight();
     void vscode.commands.executeCommand("setContext", JUMP_QP_CONTEXT_KEY, false);
   };
 
@@ -134,9 +222,16 @@ async function promptWithQuickPick(
 
   qp.value = previousValue ?? "";
 
-  const localItems: vscode.QuickPickItem[] = buildLocalItems(localNames);
+  const { items: localItems, tipItem } = buildLocalItems(localNames);
   const setItems = () => (qp.items = localItems);
   setItems();
+
+  try {
+    (qp as any).activeItems = [tipItem];
+    (qp as any).selectedItems = [];
+  } catch {
+    /* ignore */
+  }
 
   if (initialValidationError) {
     vscode.window.showErrorMessage(initialValidationError);
@@ -178,6 +273,8 @@ async function promptWithQuickPick(
     const picked = qp.selectedItems[0] ?? qp.activeItems[0];
     if (!picked) return false;
 
+    if ((picked as any).__isTipItem) return false;
+
     const trimmed = qp.value.trim();
     const normalized = replaceNameInExpression(trimmed, picked.label);
     if (normalized === qp.value) return false;
@@ -202,10 +299,21 @@ async function promptWithQuickPick(
   });
   disposables.push(insertSelectionDisposable);
 
+  const changeActiveDisposable = qp.onDidChangeActive((items) => {
+    updateHighlightFromItem(items[0]);
+  });
+  disposables.push(changeActiveDisposable);
+
+  const changeSelectionDisposable = qp.onDidChangeSelection((items) => {
+    updateHighlightFromItem(items[0]);
+  });
+  disposables.push(changeSelectionDisposable);
+
   qp.onDidChangeValue((value) => {
     if (value.trim() === "") {
       lastParse = undefined;
       lastValidatedValue = undefined;
+      clearHighlight();
       return;
     }
 
@@ -235,11 +343,24 @@ async function promptWithQuickPick(
       if (!lastParse) return;
 
       resolve(lastParse);
+      wasAccepted = true;
       cleanup();
       qp.dispose();
     });
 
     qp.onDidHide(() => {
+      // If user cancelled (ESC), restore cursor and viewport.
+      if (!wasAccepted) {
+        try {
+          editor.selection = originalSelection;
+          if (originalVisible) {
+            // Use Default so VS Code restores without forcing center/top.
+            editor.revealRange(originalVisible, vscode.TextEditorRevealType.Default);
+          }
+        } catch {
+          /* ignore */
+        }
+      }
       resolve(undefined);
       cleanup();
     });
@@ -249,27 +370,32 @@ async function promptWithQuickPick(
   return accepted;
 }
 
-/**
- * Adds a non-selectable tip at the top of the QuickPick using a separator.
- * This avoids interfering with selection while informing the shortcuts.
- */
-function buildLocalItems(localNames: LocalNamesMap): vscode.QuickPickItem[] {
-  // Non-selectable header (separator) with the tip
-  const infoSeparator = {
-    label: "Tab ↹ Inserir • Enter ↩ Navegar",
-    kind: vscode.QuickPickItemKind.Separator,
-  } as unknown as vscode.QuickPickItem; // keep type compatible for qp.items
+function buildLocalItems(localNames: LocalNamesMap): {
+  items: vscode.QuickPickItem[];
+  tipItem: vscode.QuickPickItem;
+} {
+  const tipItem: vscode.QuickPickItem = {
+    label: "",
+    description: "Tab ↹ Inserir • Enter ↩ Navegar",
+    detail: "",
+    alwaysShow: true,
+  } as vscode.QuickPickItem;
+
+  (tipItem as any).__isTipItem = true;
 
   if (!localNames.size) {
-    return [
-      infoSeparator,
-      {
-        label: "Nenhum nome local encontrado",
-        description: "—",
-        detail: "Defina métodos/labels no arquivo atual para listá-los aqui.",
-        alwaysShow: true,
-      },
-    ];
+    return {
+      tipItem,
+      items: [
+        tipItem,
+        {
+          label: "Nenhum nome local encontrado",
+          description: "—",
+          detail: "Defina métodos/labels no arquivo atual para listá-los aqui.",
+          alwaysShow: true,
+        },
+      ],
+    };
   }
 
   const items = [...localNames.values()]
@@ -277,11 +403,9 @@ function buildLocalItems(localNames: LocalNamesMap): vscode.QuickPickItem[] {
     .map((info) => ({
       label: info.originalName,
       description: "definição local",
-      detail: `linha ${info.line + 1}`,
     }));
 
-  // Keep the informative separator on top.
-  return [infoSeparator, ...items];
+  return { tipItem, items: [tipItem, ...items] };
 }
 
 /** Replaces only the "name" portion in the expression, preserving +offset and ^item. */
@@ -389,7 +513,12 @@ async function collectLocalNames(document: vscode.TextDocument): Promise<LocalNa
         const line = symbol.selectionRange?.start.line ?? symbol.range.start.line;
         const key = symbol.name.toLowerCase();
         if (!map.has(key)) {
-          map.set(key, { line, originalName: symbol.name });
+          map.set(key, {
+            line,
+            originalName: symbol.name,
+            selectionRange: symbol.selectionRange ?? symbol.range,
+            blockRange: symbol.range,
+          });
         }
       }
       if (symbol.children?.length) pending.push(...symbol.children);

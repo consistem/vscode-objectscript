@@ -885,12 +885,12 @@
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity",
-        "title": "Go to Name + Offset ^ Item"
+        "title": "Go to Definition (+Offset ^Item)"
       },
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity.insertSelection",
-        "title": "Insert Selected Name (Consistem Quick Pick)",
+        "title": "Insert Selection (Quick Pick)",
         "enablement": "inQuickOpen && vscode-objectscript.ccs.jumpToTagQuickPickActive"
       },
       {
