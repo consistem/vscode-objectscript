@@ -843,7 +843,13 @@
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity",
-        "title": "Go to Name + Offset ^ Item"
+        "title": "Go to Definition (+Offset ^Item)"
+      },
+      {
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity.insertSelection",
+        "title": "Insert Selection (Quick Pick)",
+        "enablement": "inQuickOpen && vscode-objectscript.ccs.jumpToTagQuickPickActive"
       },
       {
         "category": "ObjectScript",
@@ -1237,6 +1243,11 @@
         "key": "Ctrl+Q",
         "mac": "Cmd+Q",
         "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+      },
+      {
+        "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity.insertSelection",
+        "key": "Tab",
+        "when": "inQuickOpen && vscode-objectscript.ccs.jumpToTagQuickPickActive"
       },
       {
         "command": "vscode-objectscript.viewOthers",
