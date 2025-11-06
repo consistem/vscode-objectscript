@@ -161,8 +161,7 @@ async function applyResolvedTextExpression(
       const fallbackLine = document.lineAt(selection.active.line);
       rangeToReplace = fallbackLine.range;
     } else {
-      rangeToReplace =
-      contextInfo.replacementRange ?? new vscode.Range(selection.start, selection.end);
+      rangeToReplace = contextInfo.replacementRange ?? new vscode.Range(selection.start, selection.end);
     }
 
     await editor.edit((editBuilder) => {
