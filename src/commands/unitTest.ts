@@ -60,7 +60,7 @@ interface TestResult {
    * The text of the error that terminated
    * execution of this test.
    * Will be `undefined` if `status` is not `0` (failed).
-   */
+  */
   error?: string;
   /**
    * Optional collection of assertion results reported by the
