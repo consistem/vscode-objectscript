@@ -918,6 +918,38 @@ export async function exportProjectContents(): Promise<any> {
   }
 }
 
+export async function compileProjectContents(node: ProjectNode): Promise<any> {
+  const { workspaceFolderUri, namespace, label } = node;
+  const api = new AtelierAPI(workspaceFolderUri);
+  api.setNamespace(namespace);
+  const compileList: string[] = await api
+    .actionQuery(
+      "SELECT CASE WHEN Type = 'PKG' THEN Name||'.*.cls' WHEN Type = 'CLS' THEN Name||'.cls' ELSE Name END Name " +
+        "FROM %Studio.Project_ProjectItemsList(?,1) WHERE Type != 'GBL' AND Type != 'DIR' " +
+        "AND (Type != 'CSP' OR (Type = 'CSP' AND $PIECE(Name,'.',2) %INLIST $LISTFROMSTRING('csp,csr,CSP,CSR'))) " +
+        "UNION SELECT SUBSTR(sod.Name,2) AS Name FROM %Library.RoutineMgr_StudioOpenDialog('*.csp,*.csr',1,1,1,1,0,1) AS sod " +
+        "JOIN %Studio.Project_ProjectItemsList(?,1) AS pil ON pil.Type = 'DIR' AND sod.Name %STARTSWITH '/'||pil.Name||'/'",
+      [label, label]
+    )
+    .then((data) => data.result.content.map((e) => e.Name));
+  return vscode.window.withProgress(
+    {
+      cancellable: true,
+      location: vscode.ProgressLocation.Notification,
+      title: `Compiling project '${label}'`,
+    },
+    (progress, token: vscode.CancellationToken) =>
+      api
+        .asyncCompile(compileList, token, config().compileFlags)
+        .then((data) => {
+          if (data.status && data.status.errors && data.status.errors.length) {
+            throw new Error("Compile error");
+          }
+        })
+        .catch(() => compileErrorMsg())
+  );
+}
+
 /**
  * Returns the index of the first isfs folder in this workspace that is linked to `project`.
  */

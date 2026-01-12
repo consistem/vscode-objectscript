@@ -1541,7 +1541,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       e.files
         // Attempt to fill in stub content for classes and routines that
         // are not server-side files and were not created due to an export
-        .filter((f) => notIsfs(f) && isClassOrRtn(f.path) && !exportedUris.has(f.toString()))
+        .filter((f) => notIsfs(f) && isClassOrRtn(f) && !exportedUris.has(f.toString()))
         .forEach(async (uri) => {
           // Need to wait in case file was created using "Save As..."
           // because in that case the file gets created without
