@@ -96,6 +96,18 @@
     "menus": {
       "commandPalette": [
         {
+          "command": "vscode-objectscript.touchBar.compile",
+          "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.touchBar.viewOthers",
+          "when": "false"
+        },
+        {
+          "command": "-editor.action.revealDefinition",
+          "when": "false"
+        },
+        {
           "command": "vscode-objectscript.compile",
           "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
         },
@@ -868,6 +880,11 @@
         "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity.insertSelection",
         "title": "Insert Selection (Quick Pick)",
         "enablement": "inQuickOpen && vscode-objectscript.ccs.jumpToTagQuickPickActive"
+      },
+      {
+        "category": "ObjectScript (Internal)",
+        "command": "-editor.action.revealDefinition",
+        "title": "Remove built-in Go to Definition menu item"
       },
       {
         "category": "ObjectScript",
