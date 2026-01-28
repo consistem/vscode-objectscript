@@ -884,7 +884,7 @@
       {
         "category": "ObjectScript (Internal)",
         "command": "-editor.action.revealDefinition",
-        "title": "Remove built-in Go to Definition menu item"
+        "title": "%command.removeBuiltinGoToDefinition%"
       },
       {
         "category": "ObjectScript",
