@@ -916,6 +916,11 @@
         "enablement": "inQuickOpen && vscode-objectscript.ccs.jumpToTagQuickPickActive"
       },
       {
+        "category": "ObjectScript (Internal)",
+        "command": "-editor.action.revealDefinition",
+        "title": "%command.removeBuiltinGoToDefinition%"
+      },
+      {
         "category": "ObjectScript",
         "command": "vscode-objectscript.export",
         "title": "Export Code from Server"
