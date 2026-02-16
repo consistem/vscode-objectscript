@@ -38,6 +38,52 @@ import { StudioActions } from "./studio";
 import { NodeBase, PackageNode, RootNode } from "../explorer/nodes";
 import { getUrisForDocument, updateIndex } from "../utils/documentIndex";
 
+const compileWaiters = new Map<string, Set<() => void>>();
+
+function notifyCompileFinished(docs: (CurrentTextFile | CurrentBinaryFile)[]): void {
+  docs.forEach((doc) => {
+    const waiters = compileWaiters.get(doc.uniqueId);
+    if (!waiters?.size) {
+      return;
+    }
+
+    waiters.forEach((resolve) => resolve());
+    compileWaiters.delete(doc.uniqueId);
+  });
+}
+
+export async function waitForCompileToFinish(document: vscode.TextDocument, timeoutMs = 65000): Promise<void> {
+  const file = currentFile(document);
+  if (!file) {
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    const waiters = compileWaiters.get(file.uniqueId) ?? new Set<() => void>();
+    const complete = () => {
+      clearTimeout(timer);
+      waiters.delete(complete);
+      if (!waiters.size) {
+        compileWaiters.delete(file.uniqueId);
+      }
+      resolve();
+    };
+
+    waiters.add(complete);
+    compileWaiters.set(file.uniqueId, waiters);
+
+    const timer = setTimeout(complete, timeoutMs);
+  });
+}
+
+async function compileFlags(): Promise<string> {
+  const defaultFlags = config().compileFlags;
+  return vscode.window.showInputBox({
+    prompt: "Compilation flags",
+    value: defaultFlags,
+  });
+}
+
 /**
  * For files being locally edited, get and return its mtime timestamp from workspace-state cache if present there,
  * else get from server. May update cache.
@@ -302,7 +348,17 @@ export async function compile(docs: (CurrentTextFile | CurrentBinaryFile)[]): Pr
             return docs;
           })
     )
-    .then(loadChanges);
+    .then(loadChanges)
+    .then(
+      (result) => {
+        notifyCompileFinished(docs);
+        return result;
+      },
+      (error) => {
+        notifyCompileFinished(docs);
+        throw error;
+      }
+    );
 }
 
 export async function importAndCompile(document?: vscode.TextDocument): Promise<any> {
@@ -312,14 +368,19 @@ export async function importAndCompile(document?: vscode.TextDocument): Promise<
     return;
   }
 
-  return (
-    importFile(file)
-      .then(() => {
-        if (isCompilable(file.name)) compile([file]);
-      })
-      // importFile handles any server errors
-      .catch(() => {})
-  );
+  const defaultFlags = config().compileFlags;
+  const flags = askFlags ? await compileFlags() : defaultFlags;
+  return importFile(file)
+    .catch((error) => {
+      throw error;
+    })
+    .then(() => {
+      if (compileFile && isCompilable(file.name)) {
+        return compile([file], flags);
+      }
+
+      return undefined;
+    });
 }
 
 export async function compileOnly(document?: vscode.TextDocument): Promise<any> {

@@ -350,6 +350,14 @@
         {
           "command": "vscode-objectscript.connectFolderToServerNamespace",
           "when": "!vscode-objectscript.connectActive && vscode-objectscript.explorerRootCount == 0 && workspaceFolderCount != 0"
+        },
+        {
+          "command": "vscode-objectscript.ccs.convertCurrentItem",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.ccs.convertCurrentItemCustom",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ],
       "view/title": [
@@ -1251,6 +1259,16 @@
         "command": "vscode-objectscript.showAllClassMembers",
         "title": "Show All Class Members",
         "icon": "$(symbol-class)"
+      },
+      {
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.convertCurrentItem",
+        "title": "Converter Item (Simples)"
+      },
+      {
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.convertCurrentItemCustom",
+        "title": "Converter Item Customizado"
       }
     ],
     "keybindings": [
@@ -1315,6 +1333,22 @@
             "type": "string",
             "default": "",
             "when": "config.consistem.globalDocumentation.openInFile"
+          },
+          "consistem.converterItem.autoConvertOnSave": {
+            "description": "Converter Item ao Salvar",
+            "type": "boolean",
+            "default": true
+          },
+          "consistem.converterItem.autoConvertExcludePackages": {
+            "markdownDescription": "Excluir pacotes ao Salvar e Converter Item Automático (ex.: `cswutil70`). Essa opção depende de `consistem.converterItem.autoConvertOnSave` ativado.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "cswutil70"
+            ],
+            "when": "config.consistem.converterItem.autoConvertOnSave"
           }
         }
       },
