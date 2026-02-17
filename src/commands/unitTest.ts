@@ -10,7 +10,7 @@ import {
   notIsfs,
   displayableUri,
   stripClassMemberNameQuotes,
-  uriIsParentOf,
+  uriIsAncestorOf,
 } from "../utils";
 import { fileSpecFromURI, isfsConfig } from "../utils/FileProviderUtil";
 import { AtelierAPI } from "../api";
@@ -1359,7 +1359,7 @@ async function runHandler(
         {
           matchOnDetail: true,
           title: `Cannot ${action} tests from multiple roots at once`,
-          placeHolder: `Pick a root to ${action} tests from`,
+          prompt: `Pick a root to ${action} tests from`,
         }
       );
       if (picked) {
@@ -2079,7 +2079,7 @@ export function setUpTestController(context: vscode.ExtensionContext): vscode.Di
       // Update root items if needed
       e.removed.forEach((wf) => {
         testController.items.forEach((i) => {
-          if (uriIsParentOf(wf.uri, i.uri)) {
+          if (uriIsAncestorOf(wf.uri, i.uri)) {
             // Remove this TestItem
             classesForRoot.delete(i);
             testController.items.delete(i.id);
