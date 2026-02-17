@@ -1536,6 +1536,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("compileOnly");
       compileOnly();
     }),
+    vscode.commands.registerCommand("vscode-objectscript.compileOnlyWithFlags", () => {
+      sendCommandTelemetryEvent("compileOnlyWithFlags");
+      compileOnly(true);
+    }),
     vscode.languages.registerDocumentLinkProvider({ language: outputLangId }, new SourceAnalysisLinkProvider()),
     vscode.commands.registerCommand("vscode-objectscript.editOthers", () => {
       sendCommandTelemetryEvent("editOthers");

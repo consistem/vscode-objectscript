@@ -128,6 +128,10 @@
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
+          "command": "vscode-objectscript.ccs.getGlobalDocumentation",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
           "command": "vscode-objectscript.ccs.locateTriggers",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
@@ -1706,6 +1710,8 @@
           },
           "objectscript.unitTest.autoload.xml": {
             "description": "Controls whether the autoload feature loads XML files.",
+            "type": "boolean",
+            "default": true,
             "scope": "resource"
           },
           "objectscript.unitTest.autoload.udl": {
@@ -1729,8 +1735,6 @@
           },
           "objectscript.commentToken": {
             "description": "The line comment characters for ObjectScript in classes and MAC and INC routines.",
-            "default": true,
-            "type": "boolean",
             "type": "string",
             "enum": [
               "#;",

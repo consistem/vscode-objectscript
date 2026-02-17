@@ -76,6 +76,44 @@ export async function waitForCompileToFinish(document: vscode.TextDocument, time
   });
 }
 
+const compileWaiters = new Map<string, Set<() => void>>();
+
+function notifyCompileFinished(docs: (CurrentTextFile | CurrentBinaryFile)[]): void {
+  docs.forEach((doc) => {
+    const waiters = compileWaiters.get(doc.uniqueId);
+    if (!waiters?.size) {
+      return;
+    }
+
+    waiters.forEach((resolve) => resolve());
+    compileWaiters.delete(doc.uniqueId);
+  });
+}
+
+export async function waitForCompileToFinish(document: vscode.TextDocument, timeoutMs = 65000): Promise<void> {
+  const file = currentFile(document);
+  if (!file) {
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    const waiters = compileWaiters.get(file.uniqueId) ?? new Set<() => void>();
+    const complete = () => {
+      clearTimeout(timer);
+      waiters.delete(complete);
+      if (!waiters.size) {
+        compileWaiters.delete(file.uniqueId);
+      }
+      resolve();
+    };
+
+    waiters.add(complete);
+    compileWaiters.set(file.uniqueId, waiters);
+
+    const timer = setTimeout(complete, timeoutMs);
+  });
+}
+
 async function compileFlags(): Promise<string> {
   const defaultFlags = config().compileFlags;
   return vscode.window.showInputBox({
