@@ -39,8 +39,12 @@ These instructions apply to files under `.github/workflows/`.
 ## Repository Setup Requirements
 
 - GitHub Actions enabled.
-- `GITHUB_TOKEN` permissions include:
-  - `contents: write`
-  - `pull-requests: write`
+- A repository secret named `SYNC_PAT` must exist:
+  - Fine-grained or classic Personal Access Token.
+  - Must grant:
+    - `Contents: Read and write`
+    - `Pull requests: Read and write`
+  - Must have access to this fork repository.
+- `actions/checkout` and `gh` CLI must use `SYNC_PAT` for authentication.
 - Repository allows merge commits (and optional auto-merge).
 - Optional secret `GOOGLE_CHAT_WEBHOOK_URL` for Chat notifications.

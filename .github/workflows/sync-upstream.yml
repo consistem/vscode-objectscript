@@ -31,6 +31,8 @@ jobs:
         with:
           ref: ${{ env.BASE_BRANCH }}
           fetch-depth: 0
+          # IMPORTANTE: usa PAT para permitir push e evitar limitações do GITHUB_TOKEN em fork
+          token: ${{ secrets.SYNC_PAT }}
 
       - name: Configure git identity
         run: |
@@ -77,7 +79,7 @@ jobs:
         if: steps.diff.outputs.needs_update == 'true'
         id: pr_lookup
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.SYNC_PAT }}
         run: |
           set -euo pipefail
           PR_NUMBER="$(gh pr list --head "${SYNC_BRANCH}" --base "${BASE_BRANCH}" --state open --json number -q '.[0].number' || true)"
@@ -153,7 +155,7 @@ jobs:
         if: steps.diff.outputs.needs_update == 'true'
         id: pr
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.SYNC_PAT }}
         run: |
           set -euo pipefail
           TITLE="Sync upstream/${UPSTREAM_BRANCH} → ${BASE_BRANCH}"
@@ -197,14 +199,14 @@ jobs:
       - name: Enable auto-merge (MERGE, not squash/rebase)
         if: steps.diff.outputs.needs_update == 'true' && steps.merge_result.outputs.merged == 'true' && steps.pr.outputs.pr_number != ''
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.SYNC_PAT }}
         run: |
           gh pr merge "${{ steps.pr.outputs.pr_number }}" --auto --merge || echo "Auto-merge not enabled/available."
 
       - name: Comment on PR if conflicts happened
         if: steps.diff.outputs.needs_update == 'true' && steps.merge_result.outputs.merged != 'true' && steps.pr.outputs.pr_number != ''
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.SYNC_PAT }}
         run: |
           BODY="$(printf '%s\n\n%s\n%s\n%s\n%s\n%s\n\n%s' \
             '⚠️ **Conflito ao sincronizar com upstream**.' \
