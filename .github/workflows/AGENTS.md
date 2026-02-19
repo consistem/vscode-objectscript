@@ -26,21 +26,22 @@ These instructions apply to files under `.github/workflows/`.
   - Sync branch is `bot/sync-upstream-master`.
   - No direct writes to `master`.
   - PR only flow (`bot/sync-upstream-master` -> `master`).
-  - Merge mode must be merge commit (`--merge`), not squash/rebase.
+  - Merge mode must be merge commit (`git merge --no-ff`), not squash/rebase.
+  - PR creation/update must be done via `peter-evans/create-pull-request`.
 - Safety behavior:
   - Exit with no action if upstream tip is already contained in base.
-  - Only create PR when there is real diff between base and sync branch.
-  - Preserve manual work on sync branch when present; avoid blind reset.
-  - Treat auto-merge as best-effort (must not fail the whole job if unavailable).
+  - Only create/update PR when there is real upstream update.
+  - After PR creation/update, auto-merge should be enabled as best-effort using merge commit strategy.
 - Conflict behavior:
-  - Keep sync branch available for manual resolution.
-  - Comment on PR with manual resolution instructions when possible.
+  - Log merge conflict and require manual resolution on the sync branch.
+  - Optional Google Chat alert can notify maintainers about conflicts and include manual resolution commands.
 
 ## Repository Setup Requirements
 
 - GitHub Actions enabled.
-- `GITHUB_TOKEN` permissions include:
-  - `contents: write`
-  - `pull-requests: write`
-- Repository allows merge commits (and optional auto-merge).
+- Repository workflow permissions must allow:
+  - `Contents: Read and write`
+  - `Pull requests: Read and write`
+- Authentication should use `GITHUB_TOKEN` (`github.token`) for checkout and PR automation.
+- Repository allows merge commits.
 - Optional secret `GOOGLE_CHAT_WEBHOOK_URL` for Chat notifications.
