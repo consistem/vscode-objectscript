@@ -92,8 +92,8 @@ export async function pickProject(api: AtelierAPI, allowCreate = true): Promise<
 export async function createProject(node: NodeBase | undefined, api?: AtelierAPI): Promise<string | undefined> {
   if (api == undefined) {
     if (node instanceof NodeBase) {
-      api = new AtelierAPI(node.workspaceFolderUri);
-      api.setNamespace(node.namespace);
+      api = new AtelierAPI(node.wsFolder.uri);
+      if (node.namespace) api.setNamespace(node.namespace);
     } else {
       // Have the user pick a server connection
       const connUri = await getWsServerConnection();
@@ -160,8 +160,8 @@ export async function deleteProject(node: ProjectNode | undefined): Promise<any>
   let api: AtelierAPI;
   let project: string;
   if (node instanceof ProjectNode) {
-    api = new AtelierAPI(node.workspaceFolderUri);
-    api.setNamespace(node.namespace);
+    api = new AtelierAPI(node.wsFolder.uri);
+    if (node.namespace) api.setNamespace(node.namespace);
     project = node.label;
   } else {
     // Have the user pick a server connection
@@ -215,7 +215,7 @@ export async function deleteProject(node: ProjectNode | undefined): Promise<any>
 
 /**
  * @param Name The name of the item to add.
- * @param Type The type of the item to add. Either "MAC", "CLS", "PKG", "CSP", "DIR" or "OTH".
+ * @param Type The type of the item to add. Either "MAC", "CLS", "PKG", "CSP", "DIR", or an abstract document type like "OTH" or "LUT".
  * @param items The items currently in the project.
  */
 function addProjectItem(
@@ -268,7 +268,7 @@ function addProjectItem(
           (item.Type == "CSP" || item.Type == "DIR") && item.Name.toLowerCase().startsWith(`${Name.toLowerCase()}/`)
       )
     );
-  } else if (Type == "OTH" && !items.some((item) => item.Name.toLowerCase() == Name.toLowerCase())) {
+  } else if (!items.some((item) => item.Name.toLowerCase() == Name.toLowerCase())) {
     add.push({ Name, Type });
   }
 
@@ -321,8 +321,15 @@ export function removeProjectItem(Name: string, Type: string, items: ProjectItem
         )
       );
     }
-  } else if (Type == "OTH" && items.some((item) => item.Name.toLowerCase() == Name.toLowerCase())) {
-    remove.push({ Name, Type: items.find((item) => item.Name.toLowerCase() == Name.toLowerCase())?.Type ?? Type });
+  } else if (Type == "OTH") {
+    // Remove all items of any abstract document type that have the same name as the target item
+    remove.concat(
+      items.filter(
+        (item) =>
+          item.Name.toLowerCase() == Name.toLowerCase() &&
+          !["MAC", "CLS", "PKG", "CSP", "DIR", "GBL"].includes(item.Type)
+      )
+    );
   }
 
   return remove;
@@ -680,7 +687,9 @@ export async function modifyProject(
             type = "DIR";
           }
         } else {
-          type = "OTH";
+          // Other tools like Production deployment expect the Type of
+          // an abstract document item to be the document's extension
+          type = ext.toUpperCase();
         }
 
         let newAdd: ProjectItem[] = [];
@@ -910,8 +919,7 @@ export async function exportProjectContents(): Promise<any> {
           [project]
         )
         .then((data) => data.result.content.map((e) => e.Name)),
-      wsFolder.name,
-      api.ns
+      wsFolder
     );
   } catch (error) {
     handleError(error, "Error executing 'Export Project Contents from Server...' command.");
@@ -984,7 +992,9 @@ export async function addIsfsFileToProject(project: string, fileName: string, ap
       ? "CLS"
       : ["mac", "int", "inc"].includes(ext)
         ? "MAC"
-        : "OTH";
+        : // Other tools like Production deployment expect the Type of
+          // an abstract document item to be the document's extension
+          ext.toUpperCase();
   const items: ProjectItem[] = await api
     .actionQuery("SELECT Name, Type FROM %Studio.Project_ProjectItemsList(?,?) WHERE Type != 'GBL'", [project, "1"])
     .then((data) => data.result.content);
@@ -1029,7 +1039,10 @@ export async function addIsfsFileToProject(project: string, fileName: string, ap
 
 export function addWorkspaceFolderForProject(node: ProjectNode): void {
   // Check if an isfs folder already exists for this project
-  const idx = isfsFolderForProject(node.label, new AtelierAPI(node.workspaceFolderUri));
+  const api = new AtelierAPI(node.wsFolder.uri);
+  if (node.namespace) api.setNamespace(node.namespace);
+  const serverName = api.config.serverName;
+  const idx = isfsFolderForProject(node.label, api);
   // If not, create one
   if (idx != -1) {
     vscode.window.showWarningMessage(`A workspace folder for this project already exists.`, "Dismiss");
@@ -1040,8 +1053,8 @@ export function addWorkspaceFolderForProject(node: ProjectNode): void {
     vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0,
     0,
     {
-      uri: vscode.Uri.parse(`isfs://${node.conn.serverName}:${node.namespace}/?project=${node.label}`),
-      name: `${node.label} - ${node.conn.serverName}:${node.namespace.toUpperCase()}`,
+      uri: vscode.Uri.parse(`isfs://${serverName}:${api.ns.toLowerCase()}/?project=${node.label}`),
+      name: `${node.label} - ${serverName}:${api.ns}`,
     }
   );
   // Switch to Explorer view so user sees the outcome
@@ -1057,8 +1070,8 @@ async function handleCommandArg(
   if (nodeOrUri instanceof NodeBase) {
     // Called from Projects Explorer
     node = nodeOrUri;
-    api = new AtelierAPI(node.workspaceFolderUri);
-    api.setNamespace(node.namespace);
+    api = new AtelierAPI(node.wsFolder.uri);
+    if (node.namespace) api.setNamespace(node.namespace);
     project = node.options.project;
   } else if (nodeOrUri instanceof vscode.Uri) {
     // Called from files explorer
