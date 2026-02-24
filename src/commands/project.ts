@@ -927,8 +927,8 @@ export async function exportProjectContents(): Promise<any> {
 }
 
 export async function compileProjectContents(node: ProjectNode): Promise<any> {
-  const { workspaceFolderUri, namespace, label } = node;
-  const api = new AtelierAPI(workspaceFolderUri);
+  const { wsFolder, namespace, label } = node;
+  const api = new AtelierAPI(wsFolder.uri);
   api.setNamespace(namespace);
   const compileList: string[] = await api
     .actionQuery(
