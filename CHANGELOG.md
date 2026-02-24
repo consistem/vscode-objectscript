@@ -1,5 +1,37 @@
 # Change Log
 
+## [3.6.0] 23-Feb-2026
+Minimum VS Code version is now 1.109.0.
+- Enhancements
+  - Integrate new BPL Editor (#1699)
+  - Remove UI component dependency from REST debugging Webview (#1702)
+  - Delete contained documents on the server when a client-side folder was deleted (#1705)
+  - Move command to export Project contents to Command Palette (#1707)
+  - Adopt new VS Code API to add toggle buttons to QuickPicks (#1709)
+  - Remove barely used commands (#1710)
+  - Open all web links in Integrated Browser (#1713)
+  - Use document index to infer a name for a newly created client-side class or routine (#1718)
+- Fixes
+  - Fix extension activation when clicking on InterSystems view container in an empty workspace folder (#1694)
+  - Add `Func` suffix to `Copy Invocation` result for Queries (#1695)
+  - Fix mapping of client-side DFI file to its document name (#1711)
+  - Show server connection information in Explorer and Projects Explorer root items in the same format as the connection Status Bar item (#1717)
+  - Only add additional Projects Explorer roots for namespaces on currently opened servers (#1717)
+  - Use extension for type when adding an abstract document to a server-side Project (#1720)
+  - Upgrade dependencies (#1708, #1712, #1714, #1723)
+
+#### Consistem
+- Enhancements
+  - Improve onboarding documentation (#75)
+  - Switch ObjectScript extension to `consistem-sistemas` publisher (#76)
+  - Update Server Manager extension ID to new publisher (#99)
+  - Locate-triggers - add company filter support (#87)
+  - Implement `converterArquivo` and `converterArquivoCustomizado` endpoints with text/plain response (#88)
+  - Translate Consistem interface to pt-BR (#89)
+- Fixes
+  - Remove invalid menu reference to `editor.action.revealDefinition` (#78)
+  - Fix Menu reveal definition command (#80, #81)
+
 ## [3.4.0] 29-Dec-2025
 - Enhancements
   - Insert file stub snippet when creating a new class or routine using client-side editing (#1681)
@@ -11,6 +43,26 @@
   - Fix `Show Plan` for IRIS 2026.1+ (#1679)
   - Trigger server-side source control `OpenedDocument` UserAction after a project is modified (#1685)
   - Upgrade dependencies (#1670, #1673, #1682)
+
+#### Consistem
+- Enhancements
+  - Align Ctrl+Click navigation flow with F12 for smoother and consistent definition jumps (#24, #27, #33)
+  - Implement Source Analysis Link Provider with command target (takeover Output) (#37)
+  - Initialize visual identity for VS Code extension (#40)
+  - Add `Consistem: Create Item` workflow integrated with IRIS `/namespaces/{ns}/createItem` (#42)
+  - Rename command category from ObjectScript to Consistem for consistent branding (#43)
+  - Override VS Code Ctrl+N to trigger `Consistem: Create Item` (#44)
+  - Show `--gif` expressions in side WebView and fix tab alignment issues (#46)
+  - Add cross-entity Jump to Tag + Offset command with full input validation and routine/class support (#49, #52, #53)
+  - Add configuration to open global documentation in editable file (#51, #54)
+  - Context-help: add new response handling for context help API (#55, #56, #59)
+  - Add new Consistem code snippet (#57)
+  - Implement unit tests customization (#69)
+  - Implement trigger locator tool (#71)
+- Fixes
+  - Fix removed custom Go to Definition command from editor title actions to hide the top bar button (#36)
+  - Fix context help indentation (#62)
+  - Fix unit test failure (#73)
 
 ## [3.2.0] 06-Oct-2025
 
@@ -30,7 +82,7 @@ Minimum VS Code version is now 1.104.0.
   - Copy Windows filesystem file correctly to `isfs` filesystem (#1658)
   - Upgrade dependencies (#1650, #1653)
 
-#### Consistem Customizations
+#### Consistem
 - Enhancements
   - Add ObjectScript enter rules for semicolon (`;`) continuation on line break (#5)
   - Auto-indent dot syntax on Enter for `objectscript`/`objectscript-int` (replicates leading dots) (#6)
