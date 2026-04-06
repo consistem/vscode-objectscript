@@ -879,6 +879,12 @@
       },
       {
         "category": "Consistem",
+        "command": "vscode-objectscript.ccs.getGlobalDocumentation",
+        "enablement": "vscode-objectscript.connectActive",
+        "title": "Documentação Global"
+      },
+      {
+        "category": "Consistem",
         "command": "vscode-objectscript.ccs.locateTriggers.openLocation",
         "title": "Abrir Gatilho Localizado"
       },
@@ -996,12 +1002,6 @@
         "command": "vscode-objectscript.viewOthers",
         "enablement": "vscode-objectscript.connectActive",
         "title": "View Other"
-      },
-      {
-        "category": "ObjectScript",
-        "command": "vscode-objectscript.ccs.getGlobalDocumentation",
-        "enablement": "vscode-objectscript.connectActive",
-        "title": "Documentação Global"
       },
       {
         "category": "ObjectScript",
