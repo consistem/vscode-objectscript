@@ -12,7 +12,7 @@ export interface CcsSettings {
 const CCS_CONFIGURATION_SECTION = "objectscript.ccs";
 const CONSISTEM_CONFIGURATION_SECTION = "consistem";
 const DEFAULT_TIMEOUT = 5000;
-const DEFAULT_AUTO_CONVERT_EXCLUDE_PACKAGES = ["cswutil70"];
+const DEFAULT_AUTO_CONVERT_EXCLUDE_PACKAGES = ["cswutil70,cswutil80"];
 
 export function getCcsSettings(): CcsSettings {
   const configuration = vscode.workspace.getConfiguration(CCS_CONFIGURATION_SECTION);
