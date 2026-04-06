@@ -1340,13 +1340,14 @@
             "default": true
           },
           "consistem.converterItem.autoConvertExcludePackages": {
-            "markdownDescription": "Excluir pacotes ao Salvar e Converter Item Automático (ex.: `cswutil70`). Essa opção depende de `consistem.converterItem.autoConvertOnSave` ativado.",
+            "markdownDescription": "Excluir pacotes ao Salvar e Converter Item Automático (ex.: `cswutil70,cswutil80`). Essa opção depende de `consistem.converterItem.autoConvertOnSave` ativado.",
             "type": "array",
             "items": {
               "type": "string"
             },
             "default": [
-              "cswutil70"
+              "cswutil70",
+              "cswutil80"
             ],
             "when": "config.consistem.converterItem.autoConvertOnSave"
           }
