@@ -358,6 +358,10 @@
         {
           "command": "vscode-objectscript.ccs.convertCurrentItemCustom",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.ccs.analizarVersaoItem",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ],
       "view/title": [
@@ -1269,6 +1273,11 @@
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.convertCurrentItemCustom",
         "title": "Converter Item Customizado"
+      },
+      {
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.analizarVersaoItem",
+        "title": "Versões do Item - Analizar"
       }
     ],
     "keybindings": [
