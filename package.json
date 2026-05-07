@@ -93,6 +93,12 @@
         "when": "vscode-objectscript.projectsExplorerRootCount == 0"
       }
     ],
+    "submenus": [
+      {
+        "id": "vscode-objectscript.consistem.submenu",
+        "label": "Consistem"
+      }
+    ],
     "menus": {
       "commandPalette": [
         {
@@ -537,6 +543,11 @@
           "command": "vscode-objectscript.showRESTDebugWebview",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && activeCustomEditorId == ''",
           "group": "objectscript@9"
+        },
+        {
+          "submenu": "vscode-objectscript.consistem.submenu",
+          "group": "consistem@1",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
         }
       ],
       "editor/title": [
@@ -680,6 +691,68 @@
           "command": "vscode-objectscript.newFile.message",
           "when": "workspaceFolderCount != 0",
           "group": "file"
+        }
+      ],
+      "vscode-objectscript.consistem.submenu": [
+        {
+          "command": "vscode-objectscript.ccs.goToDefinition",
+          "group": "1_nav@1",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "vscode-objectscript.ccs.resolveContextExpression",
+          "group": "1_nav@2",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "vscode-objectscript.ccs.followDefinitionLink",
+          "group": "1_nav@3",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "vscode-objectscript.ccs.followSourceAnalysisLink",
+          "group": "1_nav@4",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "vscode-objectscript.ccs.jumpToTagOffsetCrossEntity",
+          "group": "1_nav@5",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "vscode-objectscript.ccs.locateTriggers",
+          "group": "2_triggers@1",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.ccs.locateTriggersByCompany",
+          "group": "2_triggers@2",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.ccs.getGlobalDocumentation",
+          "group": "3_docs@1",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.ccs.convertCurrentItem",
+          "group": "4_convert@1",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.ccs.convertCurrentItemCustom",
+          "group": "4_convert@2",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.ccs.analizarVersaoItem",
+          "group": "5_version@1",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.ccs.createItem",
+          "group": "6_create@1",
+          "when": "editorTextFocus && editorLangId =~ /^objectscript/"
         }
       ]
     },
