@@ -11,6 +11,7 @@ export const ROUTES = {
   converterArquivo: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/converterArquivo`,
   converterArquivoCustomizado: (namespace: string) =>
     `/namespaces/${encodeURIComponent(namespace)}/converterArquivoCustomizado`,
+  analizarVersaoItem: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/analizarVersaoItem`,
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;
