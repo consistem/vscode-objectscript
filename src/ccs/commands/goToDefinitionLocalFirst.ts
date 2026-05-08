@@ -15,8 +15,12 @@ export async function goToDefinitionLocalFirst(): Promise<void> {
   try {
     const location = await lookupCcsDefinition(document, position, tokenSource.token);
     if (location) {
-      await vscode.window.showTextDocument(location.uri, { selection: location.range });
-      return;
+      try {
+        await vscode.window.showTextDocument(location.uri, { selection: location.range });
+        return;
+      } catch {
+        // CCS returned a location but the URI couldn't be opened — fall through to revealDefinition
+      }
     }
   } finally {
     tokenSource.dispose();

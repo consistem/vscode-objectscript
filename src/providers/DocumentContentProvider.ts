@@ -39,6 +39,23 @@ export function compareConns(
   return false;
 }
 
+/** Returns `true` if both connections point to the same server, regardless of namespace */
+export function compareSameServer(
+  conn1: { server: any; host: any; port: any; "docker-compose": any },
+  conn2: { server: any; host: any; port: any; "docker-compose": any }
+): boolean {
+  if (conn1.server && conn2.server) {
+    return conn1.server === conn2.server;
+  } else if (!conn1.server && !conn2.server) {
+    if (conn1.port && conn2.port) {
+      return conn1.host === conn2.host && conn1.port === conn2.port;
+    } else if (conn1["docker-compose"] && conn2["docker-compose"]) {
+      return conn1["docker-compose"].service === conn2["docker-compose"].service;
+    }
+  }
+  return false;
+}
+
 export class DocumentContentProvider implements vscode.TextDocumentContentProvider {
   public get onDidChange(): vscode.Event<vscode.Uri> {
     return this.onDidChangeEvent.event;
@@ -179,6 +196,7 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
           const wFolders = vscode.workspace.workspaceFolders;
           if (wFolders && wFolders.length > 1) {
             // This is a multi-root workspace
+            // First pass: same server + same namespace (highest priority)
             for (const wFolder of wFolders) {
               if (notIsfs(wFolder.uri) && wFolder.name != workspaceFolder) {
                 // This isn't the folder that we checked originally
@@ -187,6 +205,18 @@ export class DocumentContentProvider implements vscode.TextDocumentContentProvid
                   // This folder is connected to the same server:ns combination as the original folder
                   const wFolderFile = this.findLocalUri(name, wFolder.name);
                   if (wFolderFile) return wFolderFile;
+                }
+              }
+            }
+            // Second pass: same server, different namespace (cross-repo navigation)
+            if (!namespace) {
+              for (const wFolder of wFolders) {
+                if (notIsfs(wFolder.uri) && wFolder.name != workspaceFolder) {
+                  const wFolderConn = config("conn", wFolder.name);
+                  if (!compareConns(conn, wFolderConn) && compareSameServer(conn, wFolderConn)) {
+                    const wFolderFile = this.findLocalUri(name, wFolder.name);
+                    if (wFolderFile) return wFolderFile;
+                  }
                 }
               }
             }
