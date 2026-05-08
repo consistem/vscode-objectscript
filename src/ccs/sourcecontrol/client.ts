@@ -6,6 +6,22 @@ import { createHttpClient } from "../core/http";
 import { logDebug } from "../core/logging";
 import { BASE_PATH } from "./routes";
 
+const ccsSessionMap = new Map<string, string[]>();
+
+function updateCcsSession(sessionKey: string, newCookies: string[]): void {
+  const cookies = ccsSessionMap.get(sessionKey) ?? [];
+  for (const cookie of newCookies) {
+    const [cookieName] = cookie.split("=");
+    const index = cookies.findIndex((c) => c.startsWith(cookieName));
+    if (index >= 0) {
+      cookies[index] = cookie;
+    } else {
+      cookies.push(cookie);
+    }
+  }
+  ccsSessionMap.set(sessionKey, cookies);
+}
+
 export class SourceControlApi {
   private readonly client: AxiosInstance;
 
@@ -30,20 +46,32 @@ export class SourceControlApi {
 
     const { endpoint, requestTimeout } = getCcsSettings();
     const baseURL = endpoint ?? defaultBaseUrl;
-    const auth =
-      typeof username === "string" && typeof password === "string"
-        ? {
-            username,
-            password,
-          }
-        : undefined;
+    const auth = typeof username === "string" && typeof password === "string" ? { username, password } : undefined;
 
-    logDebug("Creating SourceControl API client", { baseURL, hasAuth: Boolean(auth) });
+    const sessionKey = `${username}@${host}:${port}${encodedPrefix}`;
 
-    const client = createHttpClient({
+    logDebug("Creating SourceControl API client", {
       baseURL,
-      auth,
-      defaultTimeout: requestTimeout,
+      hasAuth: Boolean(auth),
+      hasCookies: (ccsSessionMap.get(sessionKey) ?? []).length > 0,
+    });
+
+    const client = createHttpClient({ baseURL, auth, defaultTimeout: requestTimeout });
+
+    client.interceptors.request.use((config) => {
+      const cookies = ccsSessionMap.get(sessionKey);
+      if (cookies?.length) {
+        config.headers["Cookie"] = cookies.join("; ");
+      }
+      return config;
+    });
+
+    client.interceptors.response.use((response) => {
+      const setCookie = response.headers["set-cookie"];
+      if (Array.isArray(setCookie) && setCookie.length) {
+        updateCcsSession(sessionKey, setCookie);
+      }
+      return response;
     });
 
     return new SourceControlApi(client);
