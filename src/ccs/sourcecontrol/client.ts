@@ -46,10 +46,7 @@ export class SourceControlApi {
 
     const { endpoint, requestTimeout } = getCcsSettings();
     const baseURL = endpoint ?? defaultBaseUrl;
-    const auth =
-      typeof username === "string" && typeof password === "string"
-        ? { username, password }
-        : undefined;
+    const auth = typeof username === "string" && typeof password === "string" ? { username, password } : undefined;
 
     const sessionKey = `${username}@${host}:${port}${encodedPrefix}`;
 
