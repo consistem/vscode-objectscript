@@ -75,7 +75,6 @@ export async function waitForCompileToFinish(document: vscode.TextDocument, time
   });
 }
 
-
 /**
  * For files being locally edited, get and return its mtime timestamp from workspace-state cache if present there,
  * else get from server. May update cache.
