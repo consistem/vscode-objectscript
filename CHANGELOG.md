@@ -1,5 +1,28 @@
 # Change Log
 
+## [3.8.1] 15-Apr-2026
+- Fixes
+  - Fix issue that causes client-side connections to be forced active (#1748)
+  - Remove unneeded dependencies (#1753)
+  - Log all compile error messages to Output channel (#1754)
+  - HTML-unescape error strings before they are written to the Output channel (#1754)
+  - Fix updating Storage definitions of child classes with DataLocation including `{%%PARENT}` (#1755)
+  - Prevent attempts to read dot-folders other than `.vscode` from reaching the server in server-side workspace folders (#1758)
+  - `Overwrite from Server` command should always replace the entire class text (#1759)
+  - Upgrade dependencies (#1751)
+
+## [3.8.0] 08-Apr-2026
+- Enhancements
+  - Synchronize only the Storage definition when compiling `*.cls` documents (#1730)
+  - Add Class entry to New File... quickpick (#1732)
+  - Infer doc URI based on doc name for the New File commands in client-side folders (#1741)
+- Fixes
+  - Restore "compile with flags" commands (#1727)
+  - Disallow opening Hidden classes using `Open InterSystems Document...` command (#1735)
+  - Fix hanging in activation when a server-side folder connection is inactive (#1740)
+  - Don't show error when trying to trigger reload of any open `objectscript://` documents after importing a file (#1744)
+  - Upgrade dependencies (#1728, #1737, #1738, #1739, #1742, #1746)
+
 ## [3.6.0] 23-Feb-2026
 Minimum VS Code version is now 1.109.0.
 - Enhancements

@@ -5,7 +5,8 @@ import { FILESYSTEM_SCHEMA } from "../extension";
 import { DocumentContentProvider } from "../providers/DocumentContentProvider";
 import { replaceFile, getWsFolder, handleError, displayableUri } from "../utils";
 import { getFileName } from "./export";
-import { getUrisForDocument } from "../utils/documentIndex";
+import { getUrisForDocument, inferDocUri } from "../utils/documentIndex";
+import { pickDocument } from "../utils/documentPicker";
 
 interface InputStepItem extends vscode.QuickPickItem {
   value?: string;
@@ -25,7 +26,13 @@ interface QuickPickStepOptions {
   items: InputStepItem[];
 }
 
-type InputStepOptions = InputBoxStepOptions | QuickPickStepOptions;
+interface ClassPickStepOptions {
+  type: "classPick";
+  title: string;
+  api: AtelierAPI | undefined;
+}
+
+type InputStepOptions = InputBoxStepOptions | QuickPickStepOptions | ClassPickStepOptions;
 
 /**
  * Get input from the user using multiple steps.
@@ -101,6 +108,63 @@ async function multiStepInput(steps: InputStepOptions[]): Promise<string[] | und
         });
         inputBox.show();
       });
+    } else if (stepOptions.type == "classPick") {
+      // Optional step: escape = skip (store ""), back = go back one step, pick = store class name
+      let picked: string | undefined;
+      if (stepOptions.api) {
+        picked = await pickDocument(stepOptions.api, stepOptions.title, "cls", step + 1, steps.length);
+      } else {
+        // Fallback InputBox when there's no server connection
+        picked = await new Promise<string | undefined>((resolve) => {
+          let settled = false;
+          const settle = (v: string | undefined) => {
+            if (!settled) {
+              settled = true;
+              resolve(v);
+            }
+          };
+          const inputBox = vscode.window.createInputBox();
+          inputBox.ignoreFocusOut = true;
+          inputBox.step = step + 1;
+          inputBox.totalSteps = steps.length;
+          inputBox.buttons = step > 0 ? [vscode.QuickInputButtons.Back] : [];
+          inputBox.title = stepOptions.title;
+          inputBox.placeholder = "Package.Subpackage.Class";
+          inputBox.onDidTriggerButton(() => {
+            settle(undefined); // Back was pressed
+            inputBox.hide();
+          });
+          inputBox.onDidAccept(() => {
+            if (typeof inputBox.validationMessage != "string") {
+              settle(inputBox.value); // "" = skip, or a valid class name
+              inputBox.hide();
+            }
+          });
+          inputBox.onDidHide(() => {
+            settle(""); // Escape = skip this optional step
+            inputBox.dispose();
+          });
+          inputBox.onDidChangeValue((value) => {
+            inputBox.validationMessage = value ? validateClassName(value) : undefined;
+          });
+          inputBox.show();
+        });
+      }
+      if (picked === "") {
+        // Back button was pressed: go back one step
+        step--;
+      } else {
+        // undefined = skipped, or a class name was entered/picked
+        if (typeof picked == "undefined") {
+          picked = "";
+        } else if (picked.slice(-4) == ".cls") {
+          picked = picked.slice(0, -4);
+        }
+        results[step] = picked;
+        step++;
+      }
+      // This is an optional step; never cancel the wizard on escape
+      escape = false;
     } else {
       // Show the QuickPick
       escape = await new Promise<boolean>((resolve) => {
@@ -172,6 +236,55 @@ function getLocalUri(cls: string, wsFolder: vscode.WorkspaceFolder): vscode.Uri 
   return clsUri;
 }
 
+/** Prompt the user for a file path using the export settings as a default */
+function promptForDocUri(cls: string, wsFolder: vscode.WorkspaceFolder): Promise<vscode.Uri | undefined> {
+  const localUri = getLocalUri(cls, wsFolder);
+  return new Promise<vscode.Uri | undefined>((resolve) => {
+    const inputBox = vscode.window.createInputBox();
+    inputBox.ignoreFocusOut = true;
+    inputBox.buttons = [{ iconPath: new vscode.ThemeIcon("save-as"), tooltip: "Show 'Save As' dialog" }];
+    inputBox.prompt = `The path is relative to the workspace folder root (${displayableUri(wsFolder.uri)}). Intermediate folders that do not exist will be created. Click the 'Save As' icon to open the standard save dialog instead.`;
+    inputBox.title = "Enter a file path for the new class";
+    inputBox.value = localUri.path.slice(wsFolder.uri.path.length);
+    inputBox.valueSelection = [inputBox.value.length, inputBox.value.length];
+    let showingSave = false;
+    inputBox.onDidTriggerButton(() => {
+      // User wants to use the save dialog
+      showingSave = true;
+      inputBox.hide();
+      vscode.window
+        .showSaveDialog({
+          defaultUri: localUri,
+          filters: {
+            Classes: ["cls"],
+          },
+        })
+        .then(
+          (u) => resolve(u),
+          () => resolve(undefined)
+        );
+    });
+    inputBox.onDidAccept(() => {
+      if (typeof inputBox.validationMessage != "string") {
+        resolve(
+          wsFolder.uri.with({
+            path: `${wsFolder.uri.path}${!wsFolder.uri.path.endsWith("/") ? "/" : ""}${inputBox.value.replace(/^\/+/, "")}`,
+          })
+        );
+        inputBox.hide();
+      }
+    });
+    inputBox.onDidHide(() => {
+      if (!showingSave) resolve(undefined);
+      inputBox.dispose();
+    });
+    inputBox.onDidChangeValue((value) => {
+      inputBox.validationMessage = value.endsWith(".cls") ? undefined : "File extension must be .cls";
+    });
+    inputBox.show();
+  });
+}
+
 /**
  * Check if `cls` is a valid class name.
  * Returns `undefined` if yes, and the reason if no.
@@ -222,6 +335,7 @@ function getAdapterPrompt(adapters: InputStepItem[], type: AdapaterClassType): I
 
 /** The types of classes we can create */
 export enum NewFileType {
+  Class = "Class",
   BusinessOperation = "Business Operation",
   BusinessService = "Business Service",
   BPL = "Business Process",
@@ -262,7 +376,7 @@ export async function newFile(type: NewFileType): Promise<void> {
       api = undefined;
     }
 
-    if (type != NewFileType.KPI) {
+    if (type != NewFileType.KPI && type != NewFileType.Class) {
       // Check if we're connected to an Interoperability namespace
       const ensemble: boolean = api
         ? await api.getNamespace().then((data) => data.result.content.features[0].enabled)
@@ -402,7 +516,7 @@ export async function newFile(type: NewFileType): Promise<void> {
     inputSteps.push(
       {
         type: "inputBox",
-        title: `Enter a name for the new ${type} class`,
+        title: `Enter a name for the new ${type == NewFileType.Class ? "class" : type + " class"}`,
         placeholder: "Package.Subpackage.Class",
         validateInput: (value: string) => {
           const valid = validateClassName(value);
@@ -935,6 +1049,30 @@ Parameter ENSPURGE As BOOLEAN = 1;
 
 }
 `;
+    } else if (type == NewFileType.Class) {
+      // Add the superclass picker as the third step
+      inputSteps.push({
+        type: "classPick",
+        title: "Pick an optional superclass or press 'Escape' for none",
+        api: api,
+      });
+
+      // Prompt the user
+      const results = await multiStepInput(inputSteps);
+      if (!results) {
+        return;
+      }
+      cls = results[0];
+      const [, desc, superclass] = results;
+
+      // Generate the file's content
+      clsContent = `
+${typeof desc == "string" ? "/// " + desc.replace(/\n/g, "\n/// ") : ""}
+Class ${cls}${superclass ? ` Extends ${superclass}` : ""}
+{
+
+}
+`;
     }
 
     // Determine the file's URI
@@ -943,52 +1081,8 @@ Parameter ENSPURGE As BOOLEAN = 1;
       // Generate the URI
       clsUri = DocumentContentProvider.getUri(`${cls}.cls`, undefined, undefined, undefined, wsFolder.uri);
     } else {
-      // Ask the user for the URI
-      const localUri = getLocalUri(cls, wsFolder);
-      clsUri = await new Promise<vscode.Uri>((resolve) => {
-        const inputBox = vscode.window.createInputBox();
-        inputBox.ignoreFocusOut = true;
-        inputBox.buttons = [{ iconPath: new vscode.ThemeIcon("save-as"), tooltip: "Show 'Save As' dialog" }];
-        inputBox.prompt = `The path is relative to the workspace folder root (${displayableUri(wsFolder.uri)}). Intermediate folders that do not exist will be created. Click the 'Save As' icon to open the standard save dialog instead.`;
-        inputBox.title = "Enter a file path for the new class";
-        inputBox.value = localUri.path.slice(wsFolder.uri.path.length);
-        inputBox.valueSelection = [inputBox.value.length, inputBox.value.length];
-        let showingSave = false;
-        inputBox.onDidTriggerButton(() => {
-          // User wants to use the save dialog
-          showingSave = true;
-          inputBox.hide();
-          vscode.window
-            .showSaveDialog({
-              defaultUri: localUri,
-              filters: {
-                Classes: ["cls"],
-              },
-            })
-            .then(
-              (u) => resolve(u),
-              () => resolve(undefined)
-            );
-        });
-        inputBox.onDidAccept(() => {
-          if (typeof inputBox.validationMessage != "string") {
-            resolve(
-              wsFolder.uri.with({
-                path: `${wsFolder.uri.path}${!wsFolder.uri.path.endsWith("/") ? "/" : ""}${inputBox.value.replace(/^\/+/, "")}`,
-              })
-            );
-            inputBox.hide();
-          }
-        });
-        inputBox.onDidHide(() => {
-          if (!showingSave) resolve(undefined);
-          inputBox.dispose();
-        });
-        inputBox.onDidChangeValue((value) => {
-          inputBox.validationMessage = value.endsWith(".cls") ? undefined : "File extension must be .cls";
-        });
-        inputBox.show();
-      });
+      // Try to infer the URI from the document index
+      clsUri = inferDocUri(`${cls}.cls`, wsFolder) ?? (await promptForDocUri(cls, wsFolder));
     }
 
     if (clsUri && clsContent) {

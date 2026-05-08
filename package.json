@@ -2,7 +2,7 @@
   "name": "vscode-objectscript",
   "displayName": "Consistem ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code, with integrations and internal standards adopted by Consistem.",
-  "version": "3.6.1-SNAPSHOT",
+  "version": "3.8.2-SNAPSHOT",
   "icon": "images/logo.png",
   "aiKey": "InstrumentationKey=9cd75d51-697c-406c-a929-2bcf46e97c64;IngestionEndpoint=https://eastus2-4.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=a431c56f-8ccc-4b99-b5e9-fce3763215b1",
   "categories": [
@@ -278,6 +278,10 @@
           "when": "isWindows"
         },
         {
+          "command": "vscode-objectscript.newFile.class",
+          "when": "false"
+        },
+        {
           "command": "vscode-objectscript.newFile.businessOperation",
           "when": "false"
         },
@@ -306,10 +310,6 @@
           "when": "false"
         },
         {
-          "command": "vscode-objectscript.importLocalFilesServerSide",
-          "when": "false"
-        },
-        {
           "command": "vscode-objectscript.showRESTDebugWebview",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && activeCustomEditorId == ''"
         },
@@ -334,7 +334,7 @@
           "when": "false"
         },
         {
-          "command": "vscode-objectscript.importXMLFiles",
+          "command": "vscode-objectscript.importFiles",
           "when": "vscode-objectscript.connectActive && workspaceFolderCount != 0"
         },
         {
@@ -368,6 +368,14 @@
         {
           "command": "vscode-objectscript.ccs.analizarVersaoItem",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.compileWithFlags",
+          "when": "!(resourceScheme =~ /^isfs(-readonly)?$/) && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
+        },
+        {
+          "command": "vscode-objectscript.compileOnlyWithFlags",
+          "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive && !activeEditorIsDirty"
         }
       ],
       "view/title": [
@@ -631,11 +639,6 @@
           "group": "objectscript_prj@3"
         },
         {
-          "command": "vscode-objectscript.importLocalFilesServerSide",
-          "when": "vscode-objectscript.connectActive && resourceScheme == isfs && explorerResourceIsRoot && !listMultiSelection",
-          "group": "objectscript_modify@2"
-        },
-        {
           "command": "vscode-objectscript.modifyWsFolder",
           "when": "(!resourceScheme || resourceScheme =~ /^isfs(-readonly)?$/) && explorerResourceIsRoot && !listMultiSelection",
           "group": "objectscript_modify@3"
@@ -654,6 +657,11 @@
       "file/newFile": [
         {
           "command": "vscode-objectscript.ccs.createItem",
+          "when": "workspaceFolderCount != 0",
+          "group": "file"
+        },
+        {
+          "command": "vscode-objectscript.newFile.class",
           "when": "workspaceFolderCount != 0",
           "group": "file"
         },
@@ -1237,6 +1245,11 @@
       },
       {
         "category": "ObjectScript",
+        "command": "vscode-objectscript.newFile.class",
+        "title": "Class"
+      },
+      {
+        "category": "ObjectScript",
         "command": "vscode-objectscript.newFile.kpi",
         "title": "Business Intelligence KPI"
       },
@@ -1272,11 +1285,6 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.importLocalFilesServerSide",
-        "title": "Import Local Files..."
-      },
-      {
-        "category": "ObjectScript",
         "command": "vscode-objectscript.showRESTDebugWebview",
         "title": "Debug REST Service..."
       },
@@ -1307,8 +1315,8 @@
       },
       {
         "category": "ObjectScript",
-        "command": "vscode-objectscript.importXMLFiles",
-        "title": "Import XML Files..."
+        "command": "vscode-objectscript.importFiles",
+        "title": "Import Files..."
       },
       {
         "category": "ObjectScript",
@@ -1334,7 +1342,7 @@
       {
         "category": "ObjectScript",
         "command": "vscode-objectscript.showAllClassMembers",
-        "title": "Show All Class Members",
+        "title": "Show All Class Members...",
         "icon": "$(symbol-class)"
       },
       {
@@ -1351,6 +1359,16 @@
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.analizarVersaoItem",
         "title": "Versões do Item - Analizar"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compileWithFlags",
+        "title": "Import and Compile Current File with Specified Flags..."
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.compileOnlyWithFlags",
+        "title": "Compile Current File with Specified Flags..."
       }
     ],
     "keybindings": [
@@ -1687,16 +1705,6 @@
               }
             }
           },
-          "objectscript.suppressCompileMessages": {
-            "default": true,
-            "type": "boolean",
-            "description": "Suppress popup messages about successful compile."
-          },
-          "objectscript.suppressCompileErrorMessages": {
-            "default": false,
-            "type": "boolean",
-            "description": "Suppress popup messages about errors during compile, but still focus on Output view."
-          },
           "objectscript.debug.debugThisMethod": {
             "type": "boolean",
             "default": true,
@@ -1707,20 +1715,15 @@
             "default": true,
             "markdownDescription": "Show inline `Copy Invocation` CodeLens action for ClassMethods and Routine Labels."
           },
-          "objectscript.autoShowTerminal": {
-            "description": "Automatically show terminal when connected to docker-compose.",
-            "type": "boolean",
-            "default": false
-          },
-          "objectscript.autoAdjustName": {
-            "markdownDescription": "Automatically modify the class name or ROUTINE header of a file in a client-side workspace folder to match the file's path when copying or moving a file. Uses the `#objectscript.export#` settings to determine the new name.",
-            "type": "boolean",
-            "default": false
-          },
           "objectscript.compileOnSave": {
             "description": "Automatically compile an InterSystems file when saved in the editor.",
             "type": "boolean",
             "default": true
+          },
+          "objectscript.refreshClassesOnSync": {
+            "description": "Controls whether the entire content of client-side classes is replaced with the server copy after synchronizing with the server. If `false`, only the contents of Storage definitions are replaced.",
+            "type": "boolean",
+            "default": false
           },
           "objectscript.multilineMethodArgs": {
             "markdownDescription": "List method arguments on multiple lines, if the server supports it. **NOTE:** Only supported on IRIS 2019.1.2, 2020.1.1+, 2021.1.0+ and subsequent versions! On all other versions, this setting will have no effect.",
@@ -1733,11 +1736,6 @@
             "type": "boolean",
             "default": false
           },
-          "objectscript.explorer.alwaysShowServerCopy": {
-            "description": "Always show the server copy of a document opened from the InterSystems Explorer.",
-            "type": "boolean",
-            "default": true
-          },
           "objectscript.projects.webAppFileExtensions": {
             "markdownDescription": "When browsing a virtual workspace folder that has a project query parameter, all files with these extensions will be automatically treated as web application files. Extensions added here will be appended to the default list and should **NOT** include a dot. See the [Settings Reference documentation page](https://docs.intersystems.com/components/csp/docbook/DocBook.UI.Page.cls?KEY=GVSCO_settings#GVSCO_settings_objectscript) for a list of extensions included by default.",
             "type": "array",
@@ -1747,16 +1745,6 @@
               "type": "string",
               "pattern": "^[^.]+$"
             }
-          },
-          "objectscript.showGeneratedFileDecorations": {
-            "description": "Controls whether a badge is shown in the file explorer and open editors view for generated files.",
-            "type": "boolean",
-            "default": true
-          },
-          "objectscript.webSocketTerminal.syntaxColoring": {
-            "description": "Enable syntax coloring for command input in the InterSystems Lite Terminal.",
-            "type": "boolean",
-            "default": true
           },
           "objectscript.showProposedApiPrompt": {
             "description": "Controls whether a prompt to enable VS Code proposed APIs is shown when a server-side workspace folder is opened.",
@@ -1871,7 +1859,12 @@
             "type": "boolean",
             "default": false
           }
-        }
+          },
+          "objectscript.insertStubContent": {
+            "description": "If true, stub content will be inserted when a blank new class or routine file is created in a client-side workspace folder.",
+            "type": "boolean",
+            "default": true
+          }
       }
     ],
     "views": {
@@ -2065,22 +2058,21 @@
     "prettier": "^3.3.1",
     "ts-loader": "^9.5.1",
     "typescript": "^5.6.2",
-    "webpack": "^5.105.0",
-    "webpack-cli": "^6.0.1"
+    "webpack": "^5.105.4",
+    "webpack-cli": "^7.0.1"
   },
   "dependencies": {
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/debugprotocol": "^1.68.0",
-    "@vscode/extension-telemetry": "^1.5.0",
-    "@xmldom/xmldom": "^0.9.8",
-    "axios": "^1.13.2",
+    "@vscode/extension-telemetry": "^1.5.1",
+    "@xmldom/xmldom": "^0.9.10",
+    "axios": "^1.15.0",
     "core-js": "^3.41.0",
     "iconv-lite": "^0.7.2",
     "istextorbinary": "^7.0.0",
-    "minimatch": "^10.2.2",
+    "minimatch": "^10.2.5",
     "node-cmd": "^5.0.0",
-    "vscode-cache": "^0.3.0",
-    "ws": "^8.19.0"
+    "ws": "^8.20.0"
   },
   "extensionDependencies": [
     "consistem-sistemas.servermanager"

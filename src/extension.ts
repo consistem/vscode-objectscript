@@ -39,9 +39,8 @@ import {
   compileExplorerItems,
   checkChangedOnServer,
   compileOnly,
-  importLocalFilesToServerSideFolder,
   loadChanges,
-  importXMLFiles,
+  importArbitraryFiles,
 } from "./commands/compile";
 import { deleteExplorerItems } from "./commands/delete";
 import { exportAll, exportCurrentFile, exportDocumentsToXMLFile, exportExplorerItems } from "./commands/export";
@@ -363,6 +362,9 @@ export function getResolvedConnectionSpec(key: string, dflt: any): any {
   return dflt;
 }
 
+/** The `api.serverId`s of all servers that are known to be inactive */
+export const inactiveServerIds: Set<string> = new Set();
+
 export async function checkConnection(
   clearCookies = false,
   uri?: vscode.Uri,
@@ -457,9 +459,8 @@ export async function checkConnection(
     handleError(message);
     panel.text = `${PANEL_LABEL} $(error)`;
     panel.tooltip = `ERROR - ${message}`;
-    if (!api.externalServer) {
-      await setConnectionState(configName, false);
-    }
+    inactiveServerIds.add(api.serverId);
+    if (!api.externalServer) await setConnectionState(configName, false);
     return;
   }
   checkingConnection = true;
@@ -473,9 +474,8 @@ export async function checkConnection(
     } else {
       panel.tooltip = new vscode.MarkdownString(`Connected as \`${username}\``);
     }
-    if (!api.externalServer) {
-      await setConnectionState(configName, true);
-    }
+    inactiveServerIds.delete(api.serverId);
+    if (!api.externalServer) await setConnectionState(configName, true);
     return;
   };
 
@@ -528,7 +528,8 @@ export async function checkConnection(
                 });
             }
           } else {
-            await setConnectionState(configName, false);
+            inactiveServerIds.add(api.serverId);
+            if (!api.externalServer) await setConnectionState(configName, false);
           }
         } else {
           success = await new Promise<boolean>((resolve) => {
@@ -560,8 +561,9 @@ export async function checkConnection(
                         checkingConnection = false;
                       })
                   );
-                } else if (!api.externalServer) {
-                  await setConnectionState(configName, false);
+                } else {
+                  inactiveServerIds.add(api.serverId);
+                  if (!api.externalServer) await setConnectionState(configName, false);
                 }
                 resolve(false);
               });
@@ -579,7 +581,8 @@ export async function checkConnection(
       );
       panel.text = `${connInfo} $(error)`;
       panel.tooltip = `ERROR - ${message}`;
-      await setConnectionState(configName, false);
+      inactiveServerIds.add(api.serverId);
+      if (!api.externalServer) await setConnectionState(configName, false);
     })
     .finally(() => {
       checkingConnection = false;
@@ -827,6 +830,8 @@ function sendWsFolderTelemetryEvent(wsFolders: readonly vscode.WorkspaceFolder[]
       "config.syncLocalChanges": !serverSide ? conf.get("syncLocalChanges") : undefined,
       dockerCompose: !serverSide ? String(typeof conf.get("conn.docker-compose") == "object") : undefined,
       "config.conn.links": String(Object.keys(conf.get("conn.links", {})).length),
+      "config.refreshClassesOnSync": !serverSide ? conf.get("refreshClassesOnSync") : undefined,
+      "config.insertStubContent": !serverSide ? conf.get("insertStubContent") : undefined,
     });
   });
 }
@@ -1232,6 +1237,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("compile");
       importAndCompile();
     }),
+    vscode.commands.registerCommand("vscode-objectscript.compileWithFlags", () => {
+      sendCommandTelemetryEvent("compileWithFlags");
+      importAndCompile(undefined, true);
+    }),
     vscode.commands.registerCommand("vscode-objectscript.compileAll", () => {
       sendCommandTelemetryEvent("compileAll");
       namespaceCompile();
@@ -1241,7 +1250,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       const file = currentFile();
       if (!file) return;
       try {
-        await loadChanges([file]);
+        await loadChanges([file], true);
       } catch (error) {
         handleError(
           error,
@@ -1563,8 +1572,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.workspace.onDidCreateFiles((e: vscode.FileCreateEvent) =>
       e.files
         // Attempt to fill in stub content for classes and routines that
-        // are not server-side files and were not created due to an export
-        .filter((f) => notIsfs(f) && isClassOrRtn(f.path) && !exportedUris.has(f.toString()))
+        // are client-side files and were not created due to an export
+        .filter(
+          (f) =>
+            notIsfs(f) &&
+            isClassOrRtn(f.path) &&
+            !exportedUris.has(f.toString()) &&
+            vscode.workspace.getConfiguration("objectscript", f).get<boolean>("insertStubContent")
+        )
         .forEach(async (uri) => {
           // Need to wait in case file was created using "Save As..."
           // because in that case the file gets created without
@@ -1766,6 +1781,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("loadStudioColors");
       loadStudioColors(languageServerExt);
     }),
+    vscode.commands.registerCommand("vscode-objectscript.newFile.class", () => {
+      sendCommandTelemetryEvent("newFile.class");
+      newFile(NewFileType.Class);
+    }),
     vscode.commands.registerCommand("vscode-objectscript.newFile.businessOperation", () => {
       sendCommandTelemetryEvent("newFile.businessOperation");
       newFile(NewFileType.BusinessOperation);
@@ -1796,19 +1815,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     }),
     vscode.window.registerFileDecorationProvider(fileDecorationProvider),
     vscode.workspace.onDidOpenTextDocument((doc) => !doc.isUntitled && fileDecorationProvider.emitter.fire(doc.uri)),
-    vscode.commands.registerCommand("vscode-objectscript.importLocalFilesServerSide", (wsFolderUri) => {
-      sendCommandTelemetryEvent("importLocalFilesServerSide");
-      if (
-        wsFolderUri instanceof vscode.Uri &&
-        wsFolderUri.scheme == FILESYSTEM_SCHEMA &&
-        (vscode.workspace.workspaceFolders != undefined
-          ? vscode.workspace.workspaceFolders.some((wsFolder) => wsFolder.uri.toString() == wsFolderUri.toString())
-          : false)
-      ) {
-        // wsFolderUri is an isfs workspace folder URI
-        return importLocalFilesToServerSideFolder(wsFolderUri);
-      }
-    }),
     vscode.commands.registerCommand("vscode-objectscript.modifyWsFolder", (wsFolderUri?: vscode.Uri) => {
       sendCommandTelemetryEvent("modifyWsFolder");
       modifyWsFolder(wsFolderUri);
@@ -1877,9 +1883,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       // Send telemetry events for all added folders
       sendWsFolderTelemetryEvent(e.added, true);
     }),
-    vscode.commands.registerCommand("vscode-objectscript.importXMLFiles", () => {
-      sendCommandTelemetryEvent("importXMLFiles");
-      importXMLFiles();
+    vscode.commands.registerCommand("vscode-objectscript.importFiles", () => {
+      sendCommandTelemetryEvent("importFiles");
+      importArbitraryFiles();
     }),
     vscode.commands.registerCommand("vscode-objectscript.exportToXMLFile", () => {
       sendCommandTelemetryEvent("exportToXMLFile");
@@ -1990,7 +1996,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       sendCommandTelemetryEvent("showAllClassMembers");
       if (uri instanceof vscode.Uri) showAllClassMembers(uri);
     }),
-    vscode.workspace.onDidSaveTextDocument((d) => {
+    vscode.workspace.onDidSaveTextDocument(async (d) => {
       void convertCurrentItemOnSave(d);
 
       // If the document just saved is a server-side document that needs to be updated in the UI,
@@ -1999,7 +2005,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
       if (notIsfs(d.uri)) return;
       const uriString = d.uri.toString();
       if (fileSystemProvider.needsUpdate(uriString)) {
-        const activeDoc = vscode.window.activeTextEditor?.document;
+        let activeDoc = vscode.window.activeTextEditor?.document;
+        if (activeDoc?.uri.toString() != uriString) {
+          // The active text editor (if any) does not contain this document. Wait a short time and
+          // check again in case this document was saved using the "Save As..." command. In that
+          // case VS Code saves the document once with no content and then saves it again with content
+          // from the source document. During that second save our FileSystemProvider will likely
+          // change the content of the document so the header matches the new URI. We need to force
+          // VS Code to reflect that change in the editor UI.
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          activeDoc = vscode.window.activeTextEditor?.document;
+        }
         if (activeDoc && !activeDoc.isDirty && !activeDoc.isClosed && activeDoc.uri.toString() == uriString) {
           // Force VS Code to refresh the file's contents in the editor tab
           vscode.commands.executeCommand("workbench.action.files.revert");
@@ -2049,6 +2065,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     serverManagerVersion: smExt?.packageJSON.version,
     "config.showProposedApiPrompt": String(conf.get("showProposedApiPrompt")),
     "config.unitTest.enabled": String(conf.get("unitTest.enabled")),
+    colorTheme: String(vscode.workspace.getConfiguration("workbench").get("colorTheme")),
+    "env.language": vscode.env.language,
+    "env.appName": vscode.env.appName,
   });
   sendWsFolderTelemetryEvent(vscode.workspace.workspaceFolders);
 

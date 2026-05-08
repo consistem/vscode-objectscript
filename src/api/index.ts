@@ -1,7 +1,6 @@
 import axios from "axios";
 import * as httpsModule from "https";
 import * as vscode from "vscode";
-import * as Cache from "vscode-cache";
 import * as semver from "semver";
 import {
   getResolvedConnectionSpec,
@@ -12,6 +11,7 @@ import {
   checkConnection,
   schemas,
   checkingConnection,
+  inactiveServerIds,
 } from "../extension";
 import { currentWorkspaceFolder, outputChannel, outputConsole } from "../utils";
 
@@ -20,8 +20,11 @@ const DEFAULT_SERVER_VERSION = "2016.2.0";
 import * as Atelier from "./atelier";
 import { isfsConfig } from "../utils/FileProviderUtil";
 
-// Map of the authRequest promises for each username@host:port target to avoid concurrency issues
+// Map of the authRequest promises for each username@host:port/pathPrefix target to avoid concurrency issues
 const authRequestMap = new Map<string, Promise<any>>();
+
+/** Map of `username@host:port/pathPrefix` to cookies */
+const cookiesMap = new Map<string, string[]>();
 
 interface ConnectionSettings {
   serverName: string;
@@ -169,12 +172,11 @@ export class AtelierAPI {
   }
 
   public get cookies(): string[] {
-    const cookies = this.cache.get("cookies", []);
-    return cookies;
+    return cookiesMap.get(this.mapKey()) ?? [];
   }
 
-  public async clearCookies(): Promise<void> {
-    await this.cache.put("cookies", []);
+  public clearCookies(): void {
+    cookiesMap.delete(this.mapKey());
   }
 
   public xdebugUrl(): string {
@@ -190,8 +192,9 @@ export class AtelierAPI {
       : "";
   }
 
-  public async updateCookies(newCookies: string[]): Promise<void> {
-    const cookies = this.cache.get("cookies", []);
+  public updateCookies(newCookies: string[]): void {
+    const mapKey = this.mapKey();
+    const cookies = cookiesMap.get(mapKey) ?? [];
     newCookies.forEach((cookie) => {
       const [cookieName] = cookie.split("=");
       const index = cookies.findIndex((el) => el.startsWith(cookieName));
@@ -201,7 +204,17 @@ export class AtelierAPI {
         cookies.push(cookie);
       }
     });
-    await this.cache.put("cookies", cookies);
+    cookiesMap.set(mapKey, cookies);
+  }
+
+  /** Return the key for getting values from connection-specific Maps for this connection */
+  private mapKey(): string {
+    const { host, port, username } = this.config;
+    let pathPrefix = this._config.pathPrefix || "";
+    if (pathPrefix.length && !pathPrefix.startsWith("/")) {
+      pathPrefix = "/" + pathPrefix;
+    }
+    return `${username}@${host}:${port}${pathPrefix}`;
   }
 
   private setConnection(workspaceFolderName: string, namespace?: string): void {
@@ -232,7 +245,7 @@ export class AtelierAPI {
       } = getResolvedConnectionSpec(serverName, config("intersystems.servers", workspaceFolderName).get(serverName));
       this._config = {
         serverName,
-        active: this.externalServer || conn.active,
+        active: this.externalServer ? !inactiveServerIds.has(serverName) : conn.active,
         apiVersion: workspaceState.get(this.configName.toLowerCase() + ":apiVersion", DEFAULT_API_VERSION),
         serverVersion: workspaceState.get(this.configName.toLowerCase() + ":serverVersion", DEFAULT_SERVER_VERSION),
         https: scheme === "https",
@@ -245,13 +258,6 @@ export class AtelierAPI {
         pathPrefix,
         docker: false,
       };
-
-      // Report server as inactive when no namespace has been determined,
-      // otherwise output channel reports the issue.
-      // This arises when a server-only workspace is editing the user's settings.json, or the .code-workspace file.
-      if (this._config.ns === "" && this.externalServer) {
-        this._config.active = false;
-      }
     } else if (conn["docker-compose"]) {
       // Provided a docker-compose type connection spec has previously been resolved we can use its values
       const resolvedSpec = getResolvedConnectionSpec(workspaceFolderName, undefined);
@@ -288,11 +294,6 @@ export class AtelierAPI {
       this._config.ns = ns;
       this._config.serverName = "";
     }
-  }
-
-  private get cache(): Cache {
-    const { host, port } = this.config;
-    return new Cache(extensionContext, `API:${host}:${port}`);
   }
 
   public get connInfo(): string {
@@ -364,9 +365,9 @@ export class AtelierAPI {
     path = encodeURI(`${pathPrefix}/api/atelier/${path || ""}`) + buildParams();
 
     const cookies = this.cookies;
-    const target = `${username}@${host}:${port}`;
+    const mapKey = this.mapKey();
     let auth: Promise<any>;
-    let authRequest = authRequestMap.get(target);
+    let authRequest = authRequestMap.get(mapKey);
     if (cookies.length || (method === "HEAD" && !originalPath)) {
       auth = Promise.resolve(cookies);
 
@@ -378,7 +379,7 @@ export class AtelierAPI {
       if (!authRequest) {
         // Recursion point
         authRequest = this.request(0, "HEAD", undefined, undefined, undefined, undefined, options);
-        authRequestMap.set(target, authRequest);
+        authRequestMap.set(mapKey, authRequest);
       }
       auth = authRequest;
     }
@@ -444,7 +445,7 @@ export class AtelierAPI {
         };
       }
       if (response.status === 401) {
-        authRequestMap.delete(target);
+        authRequestMap.delete(mapKey);
         if (this.wsOrFile && !checkingConnection) {
           setTimeout(() => {
             checkConnection(
@@ -459,7 +460,7 @@ export class AtelierAPI {
       await this.updateCookies(response.headers["set-cookie"] || []);
       if (method === "HEAD") {
         if (!originalPath) {
-          authRequestMap.delete(target);
+          authRequestMap.delete(mapKey);
           return this.cookies;
         } else if (response.status >= 400) {
           // The HEAD /doc request errored out
@@ -558,7 +559,7 @@ export class AtelierAPI {
         outputChannel.appendLine(`+- END ----------------------------------------------`);
       }
       // always discard the cached authentication promise
-      authRequestMap.delete(target);
+      authRequestMap.delete(mapKey);
 
       // In some cases schedule an automatic retry.
       // ENOTFOUND occurs if, say, the VPN to the server's network goes down.
@@ -626,7 +627,12 @@ export class AtelierAPI {
   }
 
   // api v1+
-  public getDoc(name: string, scope: vscode.Uri | string, mtime?: number): Promise<Atelier.Response<Atelier.Document>> {
+  public getDoc(
+    name: string,
+    scope: vscode.Uri | string,
+    mtime?: number,
+    storageOnly: boolean = false
+  ): Promise<Atelier.Response<Atelier.Document>> {
     let params, headers;
     name = this.transformNameIfCsp(name);
     if (
@@ -642,6 +648,11 @@ export class AtelierAPI {
         .get("multilineMethodArgs")
     ) {
       params = { format: "udl-multiline" };
+    } else {
+      params = {};
+    }
+    if (storageOnly) {
+      params["storageOnly"] = "1";
     }
     if (mtime && mtime > 0) {
       headers = { "IF-NONE-MATCH": new Date(mtime).toISOString().replace(/T|Z/g, " ").trim() };
@@ -664,7 +675,7 @@ export class AtelierAPI {
     name: string,
     data: { enc: boolean; content: string[]; mtime: number },
     ignoreConflict?: boolean
-  ): Promise<Atelier.Response> {
+  ): Promise<Atelier.Response<Atelier.Document>> {
     const params = { ignoreConflict };
     name = this.transformNameIfCsp(name);
     const headers = {};
