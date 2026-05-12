@@ -11,6 +11,7 @@ const ALLOWED_FLAGS = new Set(["agrupSetPiece", "objDynamic"]);
 
 export interface ConverterRequestBody {
   item: string;
+  flgDisplayLinasNaoConv: 0 | 1;
 }
 
 export interface ConverterCustomRequestBody extends ConverterRequestBody {
@@ -27,6 +28,7 @@ export interface ConverterCoreParams {
   flgEliminarCSMV?: number;
   strFlagsConv?: string;
   strParamPersist?: string;
+  flgDisplayLinasNaoConv?: 0 | 1;
 }
 
 export class ConverterClient {
@@ -39,10 +41,11 @@ export class ConverterClient {
   public async convertDefault(
     document: vscode.TextDocument,
     item: string,
+    flgDisplayLinasNaoConv: 0 | 1 = 1,
     token?: vscode.CancellationToken
   ): Promise<string> {
     this.validateItem(item);
-    return this.converterCore(document, item, {}, token);
+    return this.converterCore(document, item, { flgDisplayLinasNaoConv }, token);
   }
 
   public async convertCustom(
@@ -76,6 +79,7 @@ export class ConverterClient {
 
     const body: ConverterRequestBody | ConverterCustomRequestBody = {
       item,
+      flgDisplayLinasNaoConv: params.flgDisplayLinasNaoConv ?? 0,
       ...(this.hasCustomParams(params)
         ? {
             tipoConversao: params.tipoConversao ?? 0,
