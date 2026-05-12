@@ -83,6 +83,7 @@ export async function convertCurrentItemCustom(): Promise<void> {
 
     const payload: ConverterCustomRequestBody = {
       item,
+      flgDisplayLinasNaoConv: 1,
       tipoConversao,
       flgPersistencia,
       flgEliminarCSMV,
@@ -110,7 +111,7 @@ export async function convertCurrentItemOnSave(document: vscode.TextDocument): P
   }
 
   await waitForCompileBeforeAutoConvert(document);
-  await convertDocumentItem(document, "Falha ao converter item automaticamente ao salvar.", true);
+  await convertDocumentItem(document, "Falha ao converter item automaticamente ao salvar.", true, 0);
 }
 
 async function waitForCompileBeforeAutoConvert(document: vscode.TextDocument): Promise<void> {
@@ -124,12 +125,13 @@ async function waitForCompileBeforeAutoConvert(document: vscode.TextDocument): P
 async function convertDocumentItem(
   document: vscode.TextDocument,
   errorMessage: string,
-  silentError = false
+  silentError = false,
+  flgDisplayLinasNaoConv: 0 | 1 = 1
 ): Promise<void> {
   const item = getItemName(document);
 
   try {
-    const responseText = await sharedClient.convertDefault(document, item);
+    const responseText = await sharedClient.convertDefault(document, item, flgDisplayLinasNaoConv);
     renderConversionOutput(responseText);
   } catch (error) {
     if (silentError) {
