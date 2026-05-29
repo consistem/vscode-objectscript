@@ -32,3 +32,4 @@ export { createItem } from "./commands/createItem";
 
 export { convertCurrentItem, convertCurrentItemCustom, convertCurrentItemOnSave } from "./commands/converterItem";
 export { analizarVersaoItem } from "./commands/analizarVersaoItem";
+export { atualizarConfiguracoes } from "./commands/atualizarConfiguracoes";
