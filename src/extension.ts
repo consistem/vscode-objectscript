@@ -171,6 +171,7 @@ import {
   convertCurrentItemCustom,
   convertCurrentItemOnSave,
   analizarVersaoItem,
+  atualizarConfiguracoes,
 } from "./ccs";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
@@ -1440,6 +1441,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.ccs.analizarVersaoItem", () => {
       sendCommandTelemetryEvent("analizarVersaoItem");
       void analizarVersaoItem();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.atualizarConfiguracoes", () => {
+      sendCommandTelemetryEvent("atualizarConfiguracoes");
+      void atualizarConfiguracoes();
     }),
     vscode.commands.registerCommand("vscode-objectscript.serverCommands.sourceControl", (uri?: vscode.Uri) => {
       sendCommandTelemetryEvent("serverCommands.sourceControl");

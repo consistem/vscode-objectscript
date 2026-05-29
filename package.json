@@ -761,6 +761,11 @@
           "command": "vscode-objectscript.ccs.createItem",
           "group": "6_create@1",
           "when": "editorTextFocus && editorLangId =~ /^objectscript/"
+        },
+        {
+          "command": "vscode-objectscript.ccs.atualizarConfiguracoes",
+          "group": "7_config@1",
+          "when": "vscode-objectscript.connectActive"
         }
       ]
     },
@@ -1359,6 +1364,11 @@
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.analizarVersaoItem",
         "title": "Versões do Item - Analizar"
+      },
+      {
+        "category": "Consistem",
+        "command": "vscode-objectscript.ccs.atualizarConfiguracoes",
+        "title": "Atualizar Configurações"
       },
       {
         "category": "ObjectScript",
