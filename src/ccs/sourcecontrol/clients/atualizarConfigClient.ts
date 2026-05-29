@@ -29,13 +29,17 @@ export class AtualizarConfigClient {
     const { signal, dispose } = createAbortSignal();
 
     try {
-      const response = await sourceControlApi.post<string>(ROUTES.atualizarConfig(api.ns), {}, {
-        timeout: 0,
-        signal,
-        responseType: "text",
-        transformResponse: (data) => data,
-        validateStatus: (status) => status >= 200 && status < 300,
-      });
+      const response = await sourceControlApi.post<string>(
+        ROUTES.atualizarConfig(api.ns),
+        {},
+        {
+          timeout: 0,
+          signal,
+          responseType: "text",
+          transformResponse: (data) => data,
+          validateStatus: (status) => status >= 200 && status < 300,
+        }
+      );
 
       return typeof response.data === "string" ? response.data : "";
     } catch (error) {
@@ -54,8 +58,6 @@ export class AtualizarConfigClient {
       return api;
     }
 
-    throw new Error(
-      "Namespace DESENVXX não encontrado. Verifique as configurações do workspace."
-    );
+    throw new Error("Namespace DESENVXX não encontrado. Verifique as configurações do workspace.");
   }
 }
