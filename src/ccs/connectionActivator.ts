@@ -37,7 +37,8 @@ async function isServerReachable(host: string, port: number, secure: boolean, pa
   const url = `${proto}://${host}:${port}${prefix}/api/atelier`;
 
   try {
-    const httpsAgent = new httpsModule.Agent({ rejectUnauthorized: false });
+    const strictSSL = vscode.workspace.getConfiguration("http").get<boolean>("proxyStrictSSL") ?? true;
+    const httpsAgent = new httpsModule.Agent({ rejectUnauthorized: strictSSL });
     await axios.get(url, {
       httpsAgent,
       timeout: 5000,
