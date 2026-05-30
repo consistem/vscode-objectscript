@@ -206,6 +206,10 @@
           "when": "vscode-objectscript.connectActive"
         },
         {
+          "command": "vscode-objectscript.ccs.activateNamespaceConnections",
+          "when": "workspaceFolderCount != 0"
+        },
+        {
           "command": "vscode-objectscript.serverCommands.sourceControl",
           "when": "(vscode-objectscript.connectActive && resourceScheme == isfs) || (vscode-objectscript.connectActive && !editorIsOpen && virtualWorkspace =~ /^isfs(-readonly)?$/)"
         },
@@ -381,6 +385,11 @@
       "view/title": [
         {
           "command": "vscode-objectscript.explorer.refresh",
+          "when": "view == ObjectScriptExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "vscode-objectscript.ccs.activateNamespaceConnections",
           "when": "view == ObjectScriptExplorer",
           "group": "navigation"
         },
@@ -1081,6 +1090,12 @@
         "title": "Refresh Projects Explorer",
         "category": "ObjectScript",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "vscode-objectscript.ccs.activateNamespaceConnections",
+        "title": "Reativar Conexões de Namespaces",
+        "category": "ObjectScript",
+        "icon": "$(plug)"
       },
       {
         "category": "ObjectScript",

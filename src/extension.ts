@@ -172,6 +172,8 @@ import {
   convertCurrentItemOnSave,
   analizarVersaoItem,
   atualizarConfiguracoes,
+  activateSiblingFolders,
+  reactivateNamespaceConnections,
 } from "./ccs";
 
 const packageJson = vscode.extensions.getExtension(extensionId).packageJSON;
@@ -476,7 +478,10 @@ export async function checkConnection(
       panel.tooltip = new vscode.MarkdownString(`Connected as \`${username}\``);
     }
     inactiveServerIds.delete(api.serverId);
-    if (!api.externalServer) await setConnectionState(configName, true);
+    if (!api.externalServer) {
+      await setConnectionState(configName, true);
+      await activateSiblingFolders(host, port);
+    }
     return;
   };
 
@@ -1473,6 +1478,75 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
     vscode.commands.registerCommand("vscode-objectscript.explorer.project.refresh", () => {
       sendCommandTelemetryEvent("explorer.project.refresh");
       projectsExplorerProvider.refresh();
+    }),
+    vscode.commands.registerCommand("vscode-objectscript.ccs.activateNamespaceConnections", async () => {
+      sendCommandTelemetryEvent("ccs.activateNamespaceConnections");
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: "Reativando conexões de namespaces...",
+          cancellable: false,
+        },
+        async () => {
+          const result = await reactivateNamespaceConnections();
+          if (!result.success) {
+            vscode.window.showErrorMessage(result.errorMessage ?? "Falha ao reativar as conexões de namespaces.");
+            return;
+          }
+          if (result.activatedFolderUris.length === 0) {
+            vscode.window.showInformationMessage("Todas as conexões de namespace já estão ativas.");
+            return;
+          }
+
+          // Valida cada folder reativado com AtelierAPI antes de confirmar o sucesso
+          let successCount = 0;
+          const failureMessages: string[] = [];
+
+          for (const folderUri of result.activatedFolderUris) {
+            const { apiTarget, configName } = connectionTarget(folderUri);
+            const api = new AtelierAPI(apiTarget, false);
+            try {
+              await api.serverInfo(true, 5000);
+              successCount++;
+            } catch (error: any) {
+              // Reverte: a conexão não está realmente funcional
+              await setConnectionState(configName, false);
+
+              // Monta mensagem descritiva do problema
+              const label = configName || folderUri.fsPath;
+              let reason: string;
+              if (!error || (typeof error === "object" && Object.keys(error).length === 0)) {
+                reason = "configurações inválidas — verifique host, porta e namespace";
+              } else if (error?.code === "WrongNamespace") {
+                reason = `namespace '${api.config.ns}' não encontrado no servidor`;
+              } else if (error?.statusCode === 401 || error?.statusCode === 403) {
+                reason = "credenciais inválidas — verifique usuário e senha";
+              } else if (["ECONNREFUSED", "ENOTFOUND", "EADDRNOTAVAIL"].includes(error?.code)) {
+                reason = "servidor inacessível — verifique host e porta";
+              } else if (["ECONNABORTED", "ERR_CANCELED", "ETIMEDOUT"].includes(error?.code)) {
+                reason = "tempo limite excedido — servidor não respondeu";
+              } else {
+                reason = error?.message ?? "erro desconhecido";
+              }
+              failureMessages.push(`• ${label}: ${reason}`);
+            }
+          }
+
+          if (successCount === 0) {
+            vscode.window.showErrorMessage(
+              `Não foi possível reativar as conexões de namespace. Verifique as configurações:\n${failureMessages.join("\n")}`
+            );
+          } else if (failureMessages.length > 0) {
+            vscode.window.showWarningMessage(
+              `${successCount} namespace${successCount !== 1 ? "s" : ""} reativado${successCount !== 1 ? "s" : ""} com sucesso. ${failureMessages.length} com erro:\n${failureMessages.join("\n")}`
+            );
+          } else {
+            vscode.window.showInformationMessage(
+              `${successCount} namespace${successCount !== 1 ? "s" : ""} reativado${successCount !== 1 ? "s" : ""} com sucesso.`
+            );
+          }
+        }
+      );
     }),
     // Register the vscode-objectscript.explorer.open command elsewhere
     registerExplorerOpen(),
