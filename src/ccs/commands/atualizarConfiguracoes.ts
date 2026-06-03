@@ -9,7 +9,7 @@ export async function atualizarConfiguracoes(): Promise<void> {
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: "Atualizando configurações...",
+      title: "Atualizando configurações e gerando backup...",
       cancellable: false,
     },
     async () => {
@@ -17,7 +17,7 @@ export async function atualizarConfiguracoes(): Promise<void> {
         const responseText = await sharedClient.atualizarConfig();
         renderOutput(responseText);
       } catch (error) {
-        handleError(error, "Falha ao atualizar configurações.");
+        handleError(error, "Falha ao atualizar configurações e gerar backup.");
       }
     }
   );
