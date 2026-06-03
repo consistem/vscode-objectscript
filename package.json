@@ -1383,7 +1383,7 @@
       {
         "category": "Consistem",
         "command": "vscode-objectscript.ccs.atualizarConfiguracoes",
-        "title": "Atualizar Configurações"
+        "title": "Atualizar Config. / Gerar Backup"
       },
       {
         "category": "ObjectScript",
