@@ -27,7 +27,7 @@ async function main() {
 
     // Install dependent extensions
     installExtension("consistem-sistemas.consistem-servermanager");
-    installExtension("consistem-sistemas.language-server");
+    installExtension("consistem-sistemas.consistem-language-server");
 
     const launchArgs = ["-n", workspace, "--enable-proposed-api", "consistem-sistemas.consistem-vscode-objectscript"];
 

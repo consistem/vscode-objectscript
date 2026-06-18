@@ -4,8 +4,8 @@
 
 # Consistem ObjectScript extension for VS Code
 
-[![](https://img.shields.io/visual-studio-marketplace/v/consistem-sistemas.vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=consistem-sistemas.vscode-objectscript)
-[![](https://img.shields.io/visual-studio-marketplace/i/consistem-sistemas.vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=consistem-sistemas.vscode-objectscript)
+[![](https://img.shields.io/visual-studio-marketplace/v/consistem-sistemas.consistem-vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=consistem-sistemas.consistem-vscode-objectscript)
+[![](https://img.shields.io/visual-studio-marketplace/i/consistem-sistemas.consistem-vscode-objectscript.svg)](https://marketplace.visualstudio.com/items?itemName=consistem-sistemas.consistem-vscode-objectscript)
 [![Known Vulnerabilities](https://snyk.io/test/github/intersystems-community/vscode-objectscript/badge.svg)](https://snyk.io/test/github/intersystems-community/vscode-objectscript)
 [![Consistem](https://img.shields.io/badge/Consistem-Website-brightgreen)](https://consistem.com.br/)
 
@@ -85,14 +85,14 @@ To unlock these features (optional):
 3. In the argv.json file that opens, add this line (required for both Stable and Insiders versions of VS Code):
 
 ```json
-"enable-proposed-api": ["consistem-sistemas.vscode-objectscript"]
+"enable-proposed-api": ["consistem-sistemas.consistem-vscode-objectscript"]
 ```
 
 4. Exit VS Code and relaunch it.
 5. Verify that the ObjectScript channel of the Output panel reports this:
 
 ```
-consistem-sistemas.vscode-objectscript version X.Y.Z-beta.1 activating with proposed APIs available.
+consistem-sistemas.consistem-vscode-objectscript version X.Y.Z-beta.1 activating with proposed APIs available.
 ```
 
 After a subsequent update of the extension from Marketplace you will only have to download and install the new `vscode-objectscript-X.Y.Z-beta.1` VSIX. None of the other steps above are needed again.
