@@ -175,7 +175,7 @@ export async function loadStudioColors(languageServerExt: vscode.Extension<any> 
   // Check that the Language Server is installed
   if (!languageServerExt) {
     vscode.window.showErrorMessage(
-      `Loading Studio syntax colors requires the [InterSystems Language Server extension](https://marketplace.visualstudio.com/items?itemName=${lsExtensionId}).`,
+      `Loading Studio syntax colors requires the [Consistem Language Server extension](https://marketplace.visualstudio.com/items?itemName=${lsExtensionId}).`,
       "Dismiss"
     );
     return;

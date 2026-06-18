@@ -1,6 +1,6 @@
-export const extensionId = "consistem-sistemas.vscode-objectscript";
-export const lsExtensionId = "consistem-sistemas.language-server";
-export const smExtensionId = "consistem-sistemas.servermanager";
+export const extensionId = "consistem-sistemas.consistem-vscode-objectscript";
+export const lsExtensionId = "consistem-sistemas.consistem-language-server";
+export const smExtensionId = "consistem-sistemas.consistem-servermanager";
 
 import vscode = require("vscode");
 import * as semver from "semver";
@@ -639,7 +639,7 @@ function languageServer(install = true): vscode.Extension<any> {
     }
     await vscode.window
       .showInformationMessage(
-        `Install the [InterSystems Language Server extension](https://marketplace.visualstudio.com/items?itemName=${lsExtensionId}) for improved intellisense and syntax coloring for ObjectScript code.`,
+        `Install the [Consistem Language Server extension](https://marketplace.visualstudio.com/items?itemName=${lsExtensionId}) for improved intellisense and syntax coloring for ObjectScript code.`,
         "Install",
         "Later"
       )
@@ -1011,7 +1011,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<any> {
   const noLSsubscriptions: { dispose(): any }[] = [];
   if (!languageServerExt) {
     if (!config("ignoreInstallLanguageServer")) {
-      outputChannel.appendLine("The intersystems.language-server extension is not installed or has been disabled.");
+      outputChannel.appendLine("The Consistem Language Server extension is not installed or has been disabled.");
       outputChannel.show(true);
     }
 
