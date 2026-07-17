@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 export interface CcsSettings {
   endpoint?: string;
   requestTimeout: number;
+  convertTimeout: number;
   debugLogging: boolean;
   flags: Record<string, boolean>;
   autoConvertOnSave: boolean;
@@ -12,15 +13,20 @@ export interface CcsSettings {
 const CCS_CONFIGURATION_SECTION = "objectscript.ccs";
 const CONSISTEM_CONFIGURATION_SECTION = "consistem";
 const DEFAULT_TIMEOUT = 5000;
+const DEFAULT_CONVERT_TIMEOUT = 180000;
 const DEFAULT_AUTO_CONVERT_EXCLUDE_PACKAGES = ["cswutil70", "cswutil80"];
 
 export function getCcsSettings(): CcsSettings {
   const configuration = vscode.workspace.getConfiguration(CCS_CONFIGURATION_SECTION);
   const endpoint = sanitizeEndpoint(configuration.get<string | undefined>("endpoint"));
-  const requestTimeout = coerceTimeout(configuration.get<number | undefined>("requestTimeout"));
+  const requestTimeout = coerceTimeout(configuration.get<number | undefined>("requestTimeout"), DEFAULT_TIMEOUT);
   const debugLogging = Boolean(configuration.get<boolean | undefined>("debugLogging"));
   const flags = configuration.get<Record<string, boolean>>("flags") ?? {};
   const consistemConfiguration = vscode.workspace.getConfiguration(CONSISTEM_CONFIGURATION_SECTION);
+  const convertTimeout = coerceTimeout(
+    consistemConfiguration.get<number | undefined>("converterItem.timeout"),
+    DEFAULT_CONVERT_TIMEOUT
+  );
   const autoConvertOnSave = getAutoConvertOnSaveSetting(consistemConfiguration);
   const autoConvertExcludePackages = sanitizeExcludePackages(
     getAutoConvertExcludePackagesSetting(consistemConfiguration)
@@ -29,6 +35,7 @@ export function getCcsSettings(): CcsSettings {
   return {
     endpoint,
     requestTimeout,
+    convertTimeout,
     debugLogging,
     flags,
     autoConvertOnSave,
@@ -53,9 +60,9 @@ function sanitizeEndpoint(endpoint?: string): string | undefined {
   return trimmed.replace(/\/+$/, "");
 }
 
-function coerceTimeout(timeout: number | undefined): number {
+function coerceTimeout(timeout: number | undefined, defaultTimeout: number): number {
   if (typeof timeout !== "number" || Number.isNaN(timeout)) {
-    return DEFAULT_TIMEOUT;
+    return defaultTimeout;
   }
 
   return Math.max(0, Math.floor(timeout));
