@@ -91,7 +91,7 @@ export async function convertCurrentItemCustom(): Promise<void> {
       strParamPersist,
     };
 
-    const responseText = await sharedClient.convertCustom(editor.document, payload);
+    const responseText = await withConversionProgress(item, () => sharedClient.convertCustom(editor.document, payload));
 
     renderConversionOutput(responseText);
   } catch (error) {
@@ -131,7 +131,9 @@ async function convertDocumentItem(
   const item = getItemName(document);
 
   try {
-    const responseText = await sharedClient.convertDefault(document, item, flgDisplayLinasNaoConv);
+    const responseText = await withConversionProgress(item, () =>
+      sharedClient.convertDefault(document, item, flgDisplayLinasNaoConv)
+    );
     renderConversionOutput(responseText);
   } catch (error) {
     if (silentError) {
@@ -155,6 +157,16 @@ function isInExcludedPackage(document: vscode.TextDocument, excludedPackages: st
     .filter((part) => part.length > 0);
 
   return pathParts.some((part) => normalizedExcluded.has(part));
+}
+
+function withConversionProgress<T>(item: string, task: () => Promise<T>): Thenable<T> {
+  return vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Window,
+      title: `Convertendo item ${item}...`,
+    },
+    task
+  );
 }
 
 function renderConversionOutput(responseText: string): void {

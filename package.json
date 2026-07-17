@@ -1475,6 +1475,12 @@
               "cswutil80"
             ],
             "when": "config.consistem.converterItem.autoConvertOnSave"
+          },
+          "consistem.converterItem.timeout": {
+            "markdownDescription": "Tempo limite (ms) aplicado às chamadas de conversão de item (`Converter Item`, `Converter Item Customizado` e conversão automática ao salvar). Use um valor mais alto em servidores/máquinas lentas. Use `0` para desativar o tempo limite. As demais chamadas do módulo continuam usando `objectscript.ccs.requestTimeout`.",
+            "type": "number",
+            "default": 180000,
+            "minimum": 0
           }
         }
       },

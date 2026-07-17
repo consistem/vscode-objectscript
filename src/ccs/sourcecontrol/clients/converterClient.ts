@@ -95,12 +95,12 @@ export class ConverterClient {
       ? ROUTES.converterArquivoCustomizado(api.ns)
       : ROUTES.converterArquivo(api.ns);
 
-    const { requestTimeout } = getCcsSettings();
+    const { convertTimeout } = getCcsSettings();
     const { signal, dispose } = createAbortSignal(token);
 
     try {
       const response = await sourceControlApi.post<string>(route, body, {
-        timeout: requestTimeout,
+        timeout: convertTimeout,
         signal,
         responseType: "text",
         transformResponse: (data) => data,
