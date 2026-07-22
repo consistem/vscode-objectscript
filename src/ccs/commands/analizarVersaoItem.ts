@@ -2,7 +2,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 
 import { AtelierAPI } from "../../api";
-import { handleError, outputChannel } from "../../utils";
+import { currentFile, handleError, outputChannel } from "../../utils";
 import { AnalizarVersaoItemClient } from "../sourcecontrol/clients/analizarVersaoItemClient";
 
 const sharedClient = new AnalizarVersaoItemClient();
@@ -15,7 +15,10 @@ export async function analizarVersaoItem(): Promise<void> {
     return;
   }
 
-  const item = path.basename(editor.document.fileName);
+  // Para classes precisamos do nome completo do documento (ex.: `Fat.NotaFiscal.cls`),
+  // não apenas do nome do arquivo. `currentFile` extrai o nome real do conteúdo
+  // (declaração `Class`/`ROUTINE`); só usamos o basename como último recurso.
+  const item = currentFile(editor.document)?.name ?? path.basename(editor.document.fileName);
 
   if (!item) {
     void vscode.window.showErrorMessage("Nome do item não disponível para analizar versão.");
