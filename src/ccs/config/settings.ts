@@ -4,6 +4,7 @@ export interface CcsSettings {
   endpoint?: string;
   requestTimeout: number;
   convertTimeout: number;
+  analisarVersaoItemTimeout: number;
   debugLogging: boolean;
   flags: Record<string, boolean>;
   autoConvertOnSave: boolean;
@@ -14,6 +15,7 @@ const CCS_CONFIGURATION_SECTION = "objectscript.ccs";
 const CONSISTEM_CONFIGURATION_SECTION = "consistem";
 const DEFAULT_TIMEOUT = 5000;
 const DEFAULT_CONVERT_TIMEOUT = 180000;
+const DEFAULT_ANALISAR_VERSAO_ITEM_TIMEOUT = 120000;
 const DEFAULT_AUTO_CONVERT_EXCLUDE_PACKAGES = ["cswutil70", "cswutil80"];
 
 export function getCcsSettings(): CcsSettings {
@@ -27,6 +29,10 @@ export function getCcsSettings(): CcsSettings {
     consistemConfiguration.get<number | undefined>("converterItem.timeout"),
     DEFAULT_CONVERT_TIMEOUT
   );
+  const analisarVersaoItemTimeout = coerceTimeout(
+    consistemConfiguration.get<number | undefined>("analisarVersaoItem.timeout"),
+    DEFAULT_ANALISAR_VERSAO_ITEM_TIMEOUT
+  );
   const autoConvertOnSave = getAutoConvertOnSaveSetting(consistemConfiguration);
   const autoConvertExcludePackages = sanitizeExcludePackages(
     getAutoConvertExcludePackagesSetting(consistemConfiguration)
@@ -36,6 +42,7 @@ export function getCcsSettings(): CcsSettings {
     endpoint,
     requestTimeout,
     convertTimeout,
+    analisarVersaoItemTimeout,
     debugLogging,
     flags,
     autoConvertOnSave,

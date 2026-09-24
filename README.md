@@ -110,7 +110,7 @@ Atelier em uso.
 | Localizar Gatilhos por Empresa | — | Lista as contas/empresas com gatilho para a rotina e a quantidade em cada uma. |
 | Converter Item | — | Executa a conversão padrão do item ativo. |
 | Converter Item Customizado | — | Executa a conversão com as opções escolhidas na hora. |
-| Versões do Item - Analizar | — | Mostra a análise de versões do item ativo. |
+| Versões do Item - Analisar | — | Mostra a análise de versões do item ativo. |
 | Atualizar Config. / Gerar Backup | — | Atualiza as configurações no servidor e gera o backup correspondente. |
 | Regerar Base de Testes | — | Lista as bases de teste montadas e regera a escolhida. |
 | Reativar Conexões de Namespaces (categoria `ObjectScript`) | — | Revalida as conexões dos namespaces configurados no workspace. |
@@ -145,6 +145,7 @@ Além de todas as configurações `objectscript.*` do projeto original, o fork a
 | `consistem.converterItem.autoConvertOnSave` | `true` | Converte o item automaticamente ao salvar. |
 | `consistem.converterItem.autoConvertExcludePackages` | `["cswutil70", "cswutil80"]` | Pacotes ignorados pela conversão automática ao salvar. |
 | `consistem.converterItem.timeout` | `180000` | Tempo limite (ms) das chamadas de conversão. `0` desativa o limite. |
+| `consistem.analisarVersaoItem.timeout` | `120000` | Tempo limite (ms) do comando **Versões do Item - Analisar**. Aumente nas configurações de usuário se a análise estourar o tempo na sua máquina. `0` desativa o limite. |
 | `objectscript.unitTest.incluirAsserts` | `"somenteFalhas"` | Quais asserts o executor retorna. `somenteFalhas` reduz bastante o volume de dados em classes que passam. |
 | `objectscript.unitTest.legacyRequestTimeout` | `600000` | Tempo limite (ms) por classe de teste executada. `0` desativa o limite. |
 | `objectscript.unitTest.usarExecutorAntigo` | `false` | Volta ao executor anterior, que sempre executa no namespace `TESTEUNITARIO`. Temporário, apenas para rollback. |

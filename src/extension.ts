@@ -169,7 +169,7 @@ import {
   convertCurrentItem,
   convertCurrentItemCustom,
   convertCurrentItemOnSave,
-  analizarVersaoItem,
+  analisarVersaoItem,
   atualizarConfiguracoes,
   activateSiblingFolders,
   reactivateNamespaceConnections,
@@ -1492,9 +1492,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<server
       sendCommandTelemetryEvent("convertCurrentItemCustom");
       void convertCurrentItemCustom();
     }),
-    vscode.commands.registerCommand("vscode-objectscript.ccs.analizarVersaoItem", () => {
-      sendCommandTelemetryEvent("analizarVersaoItem");
-      void analizarVersaoItem();
+    vscode.commands.registerCommand("vscode-objectscript.ccs.analisarVersaoItem", () => {
+      sendCommandTelemetryEvent("analisarVersaoItem");
+      void analisarVersaoItem();
     }),
     vscode.commands.registerCommand("vscode-objectscript.ccs.atualizarConfiguracoes", () => {
       sendCommandTelemetryEvent("atualizarConfiguracoes");
