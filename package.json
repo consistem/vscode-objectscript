@@ -2,7 +2,7 @@
   "name": "consistem-vscode-objectscript",
   "displayName": "Consistem ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code, with integrations and internal standards adopted by Consistem.",
-  "version": "3.8.3",
+  "version": "3.8.4",
   "icon": "images/logo.png",
   "aiKey": "InstrumentationKey=9cd75d51-697c-406c-a929-2bcf46e97c64;IngestionEndpoint=https://eastus2-4.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=a431c56f-8ccc-4b99-b5e9-fce3763215b1",
   "categories": [
@@ -370,7 +370,7 @@
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
-          "command": "vscode-objectscript.ccs.analizarVersaoItem",
+          "command": "vscode-objectscript.ccs.analisarVersaoItem",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
@@ -767,7 +767,7 @@
           "when": "editorTextFocus && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
-          "command": "vscode-objectscript.ccs.analizarVersaoItem",
+          "command": "vscode-objectscript.ccs.analisarVersaoItem",
           "group": "5_version@1",
           "when": "editorTextFocus && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
@@ -1399,8 +1399,8 @@
       },
       {
         "category": "Consistem",
-        "command": "vscode-objectscript.ccs.analizarVersaoItem",
-        "title": "Versões do Item - Analizar"
+        "command": "vscode-objectscript.ccs.analisarVersaoItem",
+        "title": "Versões do Item - Analisar"
       },
       {
         "category": "Consistem",
@@ -1502,6 +1502,12 @@
             "markdownDescription": "Tempo limite (ms) aplicado às chamadas de conversão de item (`Converter Item`, `Converter Item Customizado` e conversão automática ao salvar). Use um valor mais alto em servidores/máquinas lentas. Use `0` para desativar o tempo limite. As demais chamadas do módulo continuam usando `objectscript.ccs.requestTimeout`.",
             "type": "number",
             "default": 180000,
+            "minimum": 0
+          },
+          "consistem.analisarVersaoItem.timeout": {
+            "markdownDescription": "Tempo limite (ms) aplicado ao comando `Versões do Item - Analisar`. Se a análise estourar o tempo na sua máquina/servidor, aumente este valor nas suas configurações de usuário. Use `0` para desativar o tempo limite.",
+            "type": "number",
+            "default": 120000,
             "minimum": 0
           }
         }

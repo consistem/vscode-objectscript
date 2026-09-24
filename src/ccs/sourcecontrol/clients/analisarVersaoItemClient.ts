@@ -7,13 +7,13 @@ import { logDebug } from "../../core/logging";
 import { SourceControlApi } from "../client";
 import { ROUTES } from "../routes";
 
-export interface AnalizarVersaoItemPayload {
+export interface AnalisarVersaoItemPayload {
   item: string;
   username: string;
   password: string;
 }
 
-export class AnalizarVersaoItemClient {
+export class AnalisarVersaoItemClient {
   private readonly apiFactory: (api: AtelierAPI) => SourceControlApi;
 
   public constructor(apiFactory: (api: AtelierAPI) => SourceControlApi = SourceControlApi.fromAtelierApi) {
@@ -22,7 +22,7 @@ export class AnalizarVersaoItemClient {
 
   public async analisar(
     document: vscode.TextDocument,
-    payload: AnalizarVersaoItemPayload,
+    payload: AnalisarVersaoItemPayload,
     token?: vscode.CancellationToken
   ): Promise<string> {
     const api = this.resolveApi(document);
@@ -31,16 +31,16 @@ export class AnalizarVersaoItemClient {
     try {
       sourceControlApi = this.apiFactory(api);
     } catch (error) {
-      logDebug("Failed to create SourceControl API client for analizar versão do item", error);
+      logDebug("Failed to create SourceControl API client for analisar versão do item", error);
       throw error;
     }
 
-    const { requestTimeout } = getCcsSettings();
+    const { analisarVersaoItemTimeout } = getCcsSettings();
     const { signal, dispose } = createAbortSignal(token);
 
     try {
-      const response = await sourceControlApi.post<string>(ROUTES.analizarVersaoItem(api.ns), payload, {
-        timeout: requestTimeout,
+      const response = await sourceControlApi.post<string>(ROUTES.analisarVersaoItem(api.ns), payload, {
+        timeout: analisarVersaoItemTimeout,
         signal,
         responseType: "text",
         transformResponse: (data) => data,
@@ -49,7 +49,7 @@ export class AnalizarVersaoItemClient {
 
       return typeof response.data === "string" ? response.data : "";
     } catch (error) {
-      logDebug("Analizar versão do item request failed", error);
+      logDebug("Analisar versão do item request failed", error);
       throw error;
     } finally {
       dispose();
@@ -66,7 +66,7 @@ export class AnalizarVersaoItemClient {
         api = fallbackApi;
       } else {
         throw new Error(
-          "Nenhum namespace ativo foi encontrado para analizar versão do item. Verifique a conexão ativa e tente novamente."
+          "Nenhum namespace ativo foi encontrado para analisar versão do item. Verifique a conexão ativa e tente novamente."
         );
       }
     }

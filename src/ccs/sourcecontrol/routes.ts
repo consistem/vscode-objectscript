@@ -11,7 +11,8 @@ export const ROUTES = {
   converterArquivo: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/converterArquivo`,
   converterArquivoCustomizado: (namespace: string) =>
     `/namespaces/${encodeURIComponent(namespace)}/converterArquivoCustomizado`,
-  analizarVersaoItem: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/analizarVersaoItem`,
+  // O caminho `analizarVersaoItem` (com "z") é o contrato publicado pelo servidor; não corrigir aqui sem mudar lá.
+  analisarVersaoItem: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/analizarVersaoItem`,
   atualizarConfig: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/atualizarConfig`,
   resolveUnitTests: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/unitTests/resolve`,
   executarClasseTeste: (namespace: string) => `/namespaces/${encodeURIComponent(namespace)}/unitTests/executarClasse`,

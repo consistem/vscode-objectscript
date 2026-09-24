@@ -31,7 +31,7 @@ export {
 export { createItem } from "./commands/createItem";
 
 export { convertCurrentItem, convertCurrentItemCustom, convertCurrentItemOnSave } from "./commands/converterItem";
-export { analizarVersaoItem } from "./commands/analizarVersaoItem";
+export { analisarVersaoItem } from "./commands/analisarVersaoItem";
 export { atualizarConfiguracoes } from "./commands/atualizarConfiguracoes";
 export { activateSiblingFolders, reactivateNamespaceConnections } from "./connectionActivator";
 export type { ReactivationResult } from "./connectionActivator";

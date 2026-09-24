@@ -1,17 +1,18 @@
+import axios from "axios";
 import * as path from "path";
 import * as vscode from "vscode";
 
 import { AtelierAPI } from "../../api";
 import { currentFile, handleError, outputChannel } from "../../utils";
-import { AnalizarVersaoItemClient } from "../sourcecontrol/clients/analizarVersaoItemClient";
+import { AnalisarVersaoItemClient } from "../sourcecontrol/clients/analisarVersaoItemClient";
 
-const sharedClient = new AnalizarVersaoItemClient();
+const sharedClient = new AnalisarVersaoItemClient();
 
-export async function analizarVersaoItem(): Promise<void> {
+export async function analisarVersaoItem(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
 
   if (!editor) {
-    void vscode.window.showErrorMessage("Nenhum arquivo ativo para analizar versão do item.");
+    void vscode.window.showErrorMessage("Nenhum arquivo ativo para analisar versão do item.");
     return;
   }
 
@@ -21,7 +22,7 @@ export async function analizarVersaoItem(): Promise<void> {
   const item = currentFile(editor.document)?.name ?? path.basename(editor.document.fileName);
 
   if (!item) {
-    void vscode.window.showErrorMessage("Nome do item não disponível para analizar versão.");
+    void vscode.window.showErrorMessage("Nome do item não disponível para analisar versão.");
     return;
   }
 
@@ -34,22 +35,45 @@ export async function analizarVersaoItem(): Promise<void> {
   const { username, password } = api.config.auth;
 
   if (typeof username !== "string" || typeof password !== "string") {
-    void vscode.window.showErrorMessage("Credenciais não disponíveis para analizar versão do item.");
+    void vscode.window.showErrorMessage("Credenciais não disponíveis para analisar versão do item.");
     return;
   }
 
   try {
-    const responseText = await sharedClient.analisar(editor.document, { item, username, password });
+    const responseText = await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: `Analisando versões do item ${item}...`,
+        cancellable: true,
+      },
+      (_progress, token) => sharedClient.analisar(editor.document, { item, username, password }, token)
+    );
 
     if (!responseText || !responseText.trim()) {
-      void vscode.window.showInformationMessage("Analizar Versão do Item não retornou nenhum conteúdo.");
+      void vscode.window.showInformationMessage("Analisar Versão do Item não retornou nenhum conteúdo.");
       return;
     }
 
     renderToOutput(responseText);
   } catch (error) {
-    handleError(error, "Falha ao analizar versão do item.");
+    if (axios.isCancel(error)) {
+      return;
+    }
+
+    if (isTimeoutError(error)) {
+      void vscode.window.showErrorMessage(
+        "A análise de versões do item excedeu o tempo limite. Aumente `consistem.analisarVersaoItem.timeout` nas configurações de usuário e tente novamente."
+      );
+      return;
+    }
+
+    handleError(error, "Falha ao analisar versão do item.");
   }
+}
+
+function isTimeoutError(error: unknown): boolean {
+  const code = axios.isAxiosError(error) ? error.code : undefined;
+  return code === "ECONNABORTED" || code === "ETIMEDOUT";
 }
 
 function resolveApi(document: vscode.TextDocument): AtelierAPI | undefined {
