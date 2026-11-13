@@ -1,12 +1,6 @@
 import * as vscode from "vscode";
 import { AtelierAPI } from "../api";
-import {
-  panel,
-  resolveConnectionSpec,
-  getResolvedConnectionSpec,
-  serverManagerApi,
-  resolveUsernameAndPassword,
-} from "../extension";
+import { panel, resolveConnectionSpec, resolvedConnSpecs, serverManagerApi, resolveAuthAndCache } from "../extension";
 import { handleError, notIsfs, displayableUri } from "../utils";
 
 interface ConnSettings {
@@ -60,7 +54,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
   }
   await resolveConnectionSpec(serverName, undefined, folder);
   // Prepare a displayable form of its connection spec as a hint to the user
-  const connSpec = getResolvedConnectionSpec(serverName, undefined);
+  const connSpec = resolvedConnSpecs.get(serverName);
   if (!connSpec) {
     vscode.window.showErrorMessage(
       `Failed to resolve connection details for server '${serverName}'. Folder was not connected.`,
@@ -88,7 +82,7 @@ export async function connectFolderToServerNamespace(): Promise<void> {
     .catch(async (error) => {
       if (error?.statusCode == 401 && !api.config.auth.resolved()) {
         // Attempt to resolve username and password and try again
-        const newSpec = await resolveUsernameAndPassword(api.config.serverName, connSpec);
+        const newSpec = await resolveAuthAndCache(api.config.serverName, connSpec);
         if (newSpec) {
           // We were able to resolve credentials, so try again
           api.setConnSpec(api.config.serverName, newSpec);

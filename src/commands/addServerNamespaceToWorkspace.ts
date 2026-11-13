@@ -3,7 +3,7 @@ import { AtelierAPI } from "../api";
 import {
   panel,
   resolveConnectionSpec,
-  getResolvedConnectionSpec,
+  resolvedConnSpecs,
   FILESYSTEM_SCHEMA,
   FILESYSTEM_READONLY_SCHEMA,
   filesystemSchemas,
@@ -47,7 +47,7 @@ async function pickNamespaceOnServer(serverName: string): Promise<string | undef
   const uri = vscode.Uri.parse(`isfs://${serverName}:%sys/`);
   await resolveConnectionSpec(serverName);
   // Prepare a displayable form of its connection spec as a hint to the user.
-  const connSpec = getResolvedConnectionSpec(serverName, undefined);
+  const connSpec = resolvedConnSpecs.get(serverName);
   if (!connSpec) {
     vscode.window.showErrorMessage(
       `Failed to resolve connection details for server '${serverName}'. Could not list its namespaces.`,
@@ -89,7 +89,7 @@ async function pickNamespaceOnServer(serverName: string): Promise<string | undef
 export async function addServerNamespaceToWorkspace(resource?: vscode.Uri): Promise<void> {
   const TITLE = "Add server namespace to workspace";
   let serverName = "";
-  let namespace: string | undefined = "";
+  let namespace: string | undefined;
   if (filesystemSchemas.includes(resource?.scheme as string)) {
     serverName = resource!.authority.split(":")[0];
     if (serverName) {
@@ -228,7 +228,7 @@ async function modifyWsFolderUri(uri: vscode.Uri): Promise<vscode.Uri | undefine
     return;
   }
 
-  let newParams = "";
+  let newParams: string;
   let newPath: string | undefined = uri.path;
   if (filterType == "csp") {
     // Prompt for a specific web app
