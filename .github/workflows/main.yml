@@ -107,7 +107,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
   publish:
     needs: build
-    if: github.event_name == 'release' && needs.build.outputs.taggedbranch == 'master'
+    if: github.repository == 'intersystems-community/vscode-objectscript' && github.event_name == 'release' && needs.build.outputs.taggedbranch == 'master' # Consistem: sem Marketplace; o VSIX oficial vem de release-vsix.yml
     runs-on: ubuntu-latest
     permissions:
       id-token: write
