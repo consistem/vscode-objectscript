@@ -23,7 +23,8 @@ async function main() {
       fs.writeFileSync(path.join(generated, `${l.name}.code-workspace`), JSON.stringify(workspaceFile(l), null, "  "));
     }
 
-    const vscodeExecutablePath = await downloadAndUnzipVSCode("stable");
+    const vscodeExecutablePath =
+      process.env.VSCODE_EXECUTABLE_PATH ?? (await downloadAndUnzipVSCode({ version: "stable", timeout: 60_000 }));
     const [cli, ...args] = resolveCliArgsFromVSCodeExecutablePath(vscodeExecutablePath);
 
     const installExtension = (extId) =>
