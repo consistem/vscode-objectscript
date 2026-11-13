@@ -95,7 +95,6 @@ export async function jumpToTagAndOffsetCrossEntity(): Promise<void> {
     if (!parsed) return;
 
     previousValue = parsed.input;
-    pendingValidationError = undefined;
 
     const navigationResult = await navigateToDestination(parsed, document, editor, resolveClient, docCtx);
     if (navigationResult.ok) return;

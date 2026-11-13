@@ -782,7 +782,7 @@ function resolveRelativeRootUris(folder: vscode.WorkspaceFolder, roots: string[]
     const normalized = normalizeRelativeRootPath(root);
     const segments = normalized ? normalized.split("/").filter(Boolean) : [];
     const segmentsContainGlob = segments.some(hasGlobPattern);
-    let expanded: string[] = [];
+    let expanded: string[];
     try {
       expanded = expandSegmentsFromFs(baseFsPath, segments);
     } catch {

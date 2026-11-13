@@ -230,7 +230,6 @@ export async function createItem(): Promise<void> {
     }
 
     lastValue = itemName;
-    lastValidationMessage = undefined;
 
     logDebug("Consistem createItem invoked", { namespace, itemName });
 
