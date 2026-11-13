@@ -42,7 +42,7 @@ This repo uses “Hierarchical Agent Instructions”: folders may contain their 
 - `npm run compile`: production build (`webpack` + `tsc`).
 - `npm run webpack-dev`: development bundle in watch mode.
 - `npm run watch`: TypeScript watch build (useful for typechecking).
-- `npm test`: runs integration tests via `@vscode/test-electron` (downloads VS Code and installs dependent extensions).
+- `npm test`: runs integration tests via `@vscode/test-electron` (downloads VS Code — or uses `VSCODE_EXECUTABLE_PATH` — and installs dependent extensions). Since upstream 3.8.6 it runs one launch per case against two IRIS containers; start them first (see `test-fixtures/README.md`). `npm test -- <filter>` runs only the matching cases.
 - `npm run lint` / `npm run lint-fix`: runs ESLint on `src/**`.
 - `npm run package`: produces a `.vsix` via `vsce package`.
 
@@ -65,6 +65,7 @@ For interactive debugging, use VS Code’s `Run and Debug` launch config (see `.
 - Framework: Mocha (TDD UI) running inside a VS Code test instance.
 - Location/pattern: add tests in `src/test/suite/` using `*.test.ts` naming.
 - Keep tests hermetic: rely on `test-fixtures/` instead of a real server when possible.
+- `src/test/suite/extension.test.ts` follows upstream (server checks per case); keep Consistem tests that don't need a server in their own files (e.g. `dotIndent.test.ts`) so upstream syncs don't conflict.
 
 ## Commit & Pull Request Guidelines
 
