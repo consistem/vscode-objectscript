@@ -1,5 +1,11 @@
 # Change Log
 
+## [3.8.6] 13-Nov-2026 (Consistem)
+- Enhancements
+  - Ao publicar uma versão pelo GitHub, o CI gera o VSIX oficial e o anexa à release automaticamente (workflow `Release VSIX`), como já acontece com o beta. Para uma release que ficou sem VSIX, o workflow pode ser executado manualmente informando a tag.
+- Fixes
+  - Remover a publicação no Marketplace/Open VSX e o "auto bump" de versão herdados do upstream: o job `publish` falhava em toda release por falta do secret `TOKEN`, deixando a release sem VSIX.
+
 ## [3.8.5] 13-Nov-2026 (Consistem)
 - Enhancements
   - Sincronizar o fork com o upstream até a `v3.8.8` (#1867 a #1911): acesso não autenticado explícito com `UnknownUser`, melhor desempenho na indexação inicial de pastas client-side, correção do `Import and Compile` de classes e rotinas, e remoção do header Authorization do log de tráfego REST.
