@@ -35,6 +35,24 @@ These instructions apply to files under `.github/workflows/`.
 - Conflict behavior:
   - Log merge conflict and require manual resolution on the sync branch.
   - Optional Google Chat alert can notify maintainers about conflicts and include manual resolution commands.
+- Any sync PR (bot or manual) must be merged on GitHub with "Create a merge commit". Squash drops the upstream
+  ancestry, and the next sync then reopens conflicts that were already resolved.
+- Fork and upstream share version numbers (`v3.8.5` exists in both). Locally, keep upstream tags out of
+  `refs/tags`: `git config remote.upstream.tagOpt --no-tags` and
+  `git config --add remote.upstream.fetch '+refs/tags/*:refs/upstream-tags/*'`.
+
+## Release Workflow (Consistem)
+
+- The fork is not published to the VS Code Marketplace or Open VSX. The upstream `publish` jobs in `main.yml` and
+  `prerelease.yml` stay disabled by the `github.repository == 'intersystems-community/vscode-objectscript'` guard
+  on their `if:` line. On every upstream sync, keep that guard, and keep out any new Marketplace/Open VSX
+  publishing the upstream adds.
+- `release-vsix.yml` builds the official VSIX when a release is published on GitHub (`release: released`) and
+  attaches it to that release (`gh release upload --clobber`, safe to re-run). Like the beta, it keeps the
+  proposed APIs enabled. The version comes from the tag; a mismatch with `package.json` only raises a warning.
+- A release left without a VSIX: run `release-vsix.yml` manually (`workflow_dispatch`) with its tag.
+- Version bumps are manual, in the PR. The upstream "auto bump version with release" push to `master` does not
+  run in the fork.
 
 ## Repository Setup Requirements
 

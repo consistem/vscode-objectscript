@@ -1,0 +1,83 @@
+# Consistem: gera o VSIX oficial e anexa à release publicada pelo GitHub.
+# Substitui o job `publish` do upstream (main.yml), que publicava no Marketplace/Open VSX
+# e fica desativado no fork. O VSIX sai como o beta: com as APIs propostas habilitadas.
+name: Release VSIX
+
+on:
+  release:
+    types:
+      - released
+  # Para uma release já publicada que ficou sem VSIX (informe a tag, ex.: v3.8.5)
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag da release (ex.: v3.8.5)"
+        required: true
+  # Ensaio: ao alterar este workflow, gera o VSIX como artefato, sem anexar a nenhuma release
+  pull_request:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/release-vsix.yml"
+
+concurrency:
+  group: release-vsix-${{ github.event.release.tag_name || inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  vsix:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || '' }}
+      - name: Conferir a release
+        if: env.TAG != ''
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName,isPrerelease \
+            -q '"Release \(.tagName) (pré-release: \(.isPrerelease))"'
+      - name: Use Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: lint
+        run: npm run lint
+      - name: Checar tipos
+        run: npx tsc -p ./ --noEmit
+      - name: Definir versão
+        id: version
+        run: |
+          set -euo pipefail
+          PKG_VERSION=$(jq -r '.version' package.json)
+          VERSION="$PKG_VERSION"
+          if [ -n "$TAG" ]; then
+            VERSION="${TAG#v}"
+            if [ "$VERSION" != "$PKG_VERSION" ]; then
+              echo "::warning::A tag $TAG difere da versão do package.json ($PKG_VERSION). O VSIX sai com a versão da tag."
+            fi
+          fi
+          NAME="$(jq -r '.name' package.json)-$VERSION"
+          tmp=$(mktemp)
+          jq --arg version "$VERSION" '.version = $version' package.json > "$tmp" && mv "$tmp" package.json
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+      - name: Gerar o VSIX
+        run: npx @vscode/vsce package -o "${{ steps.version.outputs.name }}.vsix"
+      - name: Anexar o VSIX à release
+        if: env.TAG != ''
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" "${{ steps.version.outputs.name }}.vsix" --clobber --repo "$GITHUB_REPOSITORY"
+      - uses: actions/upload-artifact@v7
+        if: env.TAG == ''
+        with:
+          name: ${{ steps.version.outputs.name }}.vsix
+          path: ${{ steps.version.outputs.name }}.vsix

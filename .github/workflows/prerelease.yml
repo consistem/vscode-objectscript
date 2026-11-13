@@ -103,7 +103,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
   publish:
     needs: build
-    if: github.event_name == 'release' && needs.build.outputs.taggedbranch == 'prerelease'
+    if: github.repository == 'intersystems-community/vscode-objectscript' && github.event_name == 'release' && needs.build.outputs.taggedbranch == 'prerelease' # Consistem: sem Marketplace
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
