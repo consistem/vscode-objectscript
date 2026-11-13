@@ -126,7 +126,7 @@ export async function projectContentsFromUri(uri: vscode.Uri, flat = false): Pro
       query =
         `SELECT DISTINCT BY (${nameCol}) ${nameCol} ` +
         "Name, Type FROM %Studio.Project_ProjectItemsList(?,1) AS pil WHERE " +
-        (gte(api.config.serverVersion!, "2021.1.0")
+        (gte(api.config.serverVersion!, "2022.1.0")
           ? "(Type NOT IN ('CLS','PKG','DIR','GBL') AND EXISTS (SELECT Size FROM %Library.RoutineMgr_StudioOpenDialog(pil.Name,1,1,1,1,0,1))) OR " +
             "(Type = 'CLS' AND EXISTS (SELECT dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID = pil.Name)) OR " +
             "(Type = 'PKG' AND EXISTS (SELECT TOP 1 dcd.ID FROM %Dictionary.ClassDefinition AS dcd WHERE dcd.ID %STARTSWITH pil.Name||'.')) OR " +
@@ -157,7 +157,7 @@ export function fileSpecFromURI(uri: vscode.Uri): string {
         : uri.path + "/";
 
   // The filter Uri parameter is the first argument to StudioOpenDialog (Spec)
-  let specOpts = "";
+  let specOpts: string;
   if (filter) {
     // Always exclude Studio projects, BPL, and DTL since we can't do anything with them
     specOpts = filter + ",'*.prj,'*.bpl,'*.dtl";

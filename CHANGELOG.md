@@ -1,5 +1,34 @@
 # Change Log
 
+## [3.8.5] 13-Nov-2026 (Consistem)
+- Enhancements
+  - Sincronizar o fork com o upstream até a `v3.8.8` (#1867 a #1911): acesso não autenticado explícito com `UnknownUser`, melhor desempenho na indexação inicial de pastas client-side, correção do `Import and Compile` de classes e rotinas, e remoção do header Authorization do log de tráfego REST.
+  - Atualizar TypeScript para 6, ESLint para 10 e as demais dependências de desenvolvimento, acompanhando o upstream; dependências `minimatch`, `iconv-lite` e `istextorbinary` removidas.
+  - Testes de integração do upstream (matriz de casos contra container IRIS) adaptados para as extensões `consistem-sistemas.*`; os testes de continuação de linha com ponto passam para `src/test/suite/dotIndent.test.ts`.
+- Fixes
+  - Manter todas as integrações Consistem (navegação, conversão de itens, conector de namespace, testes unitários, gatilhos) sobre a nova base do upstream.
+
+## [3.8.8] 12-Nov-2026
+- Fixes
+  - Remove `minimatch` dependency (#1898)
+  - Fix importing of classes and routines through `Import and Compile` command (#1899)
+  - Sync client-side web app files as raw bytes (#1901)
+  - Improve performance of initial index of client-side workspace folders (#1903)
+  - Keep the Authorization header out of the REST traffic log on network errors (#1906)
+  - Give API clients only the chosen connection's plaintext password (#1907)
+
+## [3.8.7] 04-Nov-2026
+- Enhancements
+  - Support explicit `UnknownUser` unauthenticated access (#1888)
+- Fixes
+  - Remove use of deprecated `url.parse()` (#1877)
+  - Remove unneeded dependency `istextorbinary` (#1878)
+  - Remove unneeded dependency `iconv-lite` (#1879)
+  - Lite Terminal: color pasted input without repainting it (#1881)
+  - Fix server-side projects when connected to 2021.x (#1882)
+  - Populate authorizations with session usernames (#1887)
+  - Upgrade dependencies
+
 ## [3.8.4] 24-Sep-2026 (Consistem)
 - Enhancements
   - Testes unitários: resumo consolidado no fim da execução, com as falhas e as classes que não executaram, também gravado no canal de saída "Consistem: Resumo dos Testes".
@@ -8,6 +37,19 @@
   - Versões do Item - Analisar: tempo limite próprio (padrão 2 minutos, antes 5 segundos), configurável em `consistem.analisarVersaoItem.timeout`, com notificação de progresso cancelável e mensagem indicando a configuração quando o tempo estoura.
 - Fixes
   - Corrigir a grafia "Analizar" para "Analisar" no comando de versões do item (o ID passa a ser `vscode-objectscript.ccs.analisarVersaoItem`).
+
+## [3.8.6] 17-Sep-2026
+- Enhancements
+  - `objectscript.conn.docker-compose` feature supports Podman (#1859)
+  - Integration tests against an IRIS container for release-preparation PRs (#1870)
+- Fixes
+  - Fix broken Marketplace badges, drop superfluous ones in README (#1857)
+  - Fix docker-compose connections always prompting for password (#1860)
+  - Fix connection check prompting/disabling on a merely-stale session (#1864)
+  - Lite Terminal: syntax color pasted input that ends with a newline (#1866)
+  - Lite Terminal: don't repaint a pasted block taller than the viewport (#1867) (contributed by @globalerp-mhess)
+  - Send synced deletes through the current connection instead of a stale copy (#1872)
+  - Upgrade dependencies
 
 ## [3.8.3] 11-Sep-2026 (Consistem)
 - Enhancements

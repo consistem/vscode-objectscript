@@ -2,7 +2,7 @@
   "name": "consistem-vscode-objectscript",
   "displayName": "Consistem ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code, with integrations and internal standards adopted by Consistem.",
-  "version": "3.8.4",
+  "version": "3.8.5",
   "icon": "images/logo.png",
   "aiKey": "InstrumentationKey=9cd75d51-697c-406c-a929-2bcf46e97c64;IngestionEndpoint=https://eastus2-4.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=a431c56f-8ccc-4b99-b5e9-fce3763215b1",
   "categories": [
@@ -1524,6 +1524,27 @@
             "required": [
               "active"
             ],
+            "dependencies": {
+              "password": [
+                "username"
+              ]
+            },
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "username",
+                    "password"
+                  ],
+                  "properties": {
+                    "username": {
+                      "pattern": "^[Uu][Nn][Kk][Nn][Oo][Ww][Nn][Uu][Ss][Ee][Rr]$"
+                    }
+                  }
+                },
+                "errorMessage": "'password' must not be set when 'username' is 'UnknownUser' (unauthenticated access)."
+              }
+            ],
             "properties": {
               "active": {
                 "type": "boolean",
@@ -1565,7 +1586,7 @@
               },
               "username": {
                 "type": "string",
-                "description": "Username to connect as. If not set here it must be provided when connecting."
+                "description": "Username to connect as. Set to 'UnknownUser' for unauthenticated access. If not set here it must be provided when connecting."
               },
               "password": {
                 "type": "string",
@@ -2109,37 +2130,27 @@
     "postinstall": "npm run download-api"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
-    "@intersystems-community/intersystems-servermanager": "^3.14.1",
-    "@types/istextorbinary": "2.3.1",
-    "@types/minimatch": "6.0.0",
+    "@eslint/js": "^10.0.1",
+    "@intersystems-community/intersystems-servermanager": "^3.16.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.13.14",
-    "@types/semver": "7.5.4",
+    "@types/semver": "^7.8.0",
     "@types/vscode": "1.109.0",
     "@types/ws": "8.18.0",
-    "@types/xmldom": "^0.1.34",
-    "@typescript-eslint/eslint-plugin": "^8.56.0",
-    "@typescript-eslint/parser": "^8.56.0",
-    "@vscode/debugadapter-testsupport": "^1.68.0",
+    "@typescript-eslint/eslint-plugin": "^8.71.1",
+    "@typescript-eslint/parser": "^8.71.1",
     "@vscode/dts": "^0.4.1",
-    "@vscode/test-electron": "^2.4.1",
-    "eslint": "^9.39.2",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-jsx-a11y": "^6.10.2",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^5.5.5",
-    "eslint-plugin-promise": "^7.2.1",
+    "@vscode/test-electron": "^3.1.0",
+    "eslint": "^10.12.0",
     "glob": "^11.1.0",
     "globals": "^15.12.0",
     "mocha": "^12.0.0",
     "path-browserify": "^1.0.1",
-    "prettier": "^3.3.1",
-    "ts-loader": "^9.5.1",
-    "typescript": "^5.6.2",
-    "webpack": "^5.105.4",
-    "webpack-cli": "^7.0.1"
+    "prettier": "^3.9.9",
+    "ts-loader": "^9.6.2",
+    "typescript": "^6.0.3",
+    "webpack": "^5.111.1",
+    "webpack-cli": "^7.2.3"
   },
   "dependencies": {
     "@vscode/debugadapter": "^1.68.0",
@@ -2148,11 +2159,9 @@
     "@xmldom/xmldom": "^0.9.12",
     "axios": "^1.20.0",
     "core-js": "^3.41.0",
-    "iconv-lite": "^0.7.2",
-    "istextorbinary": "^7.0.0",
-    "minimatch": "^10.2.5",
-    "node-cmd": "^5.0.0",
-    "ws": "^8.21.0"
+    "node-cmd": "^6.0.1",
+    "semver": "^7.8.5",
+    "ws": "^8.22.0"
   },
   "extensionDependencies": [
     "consistem-sistemas.consistem-servermanager"
